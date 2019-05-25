@@ -29,6 +29,8 @@ def init_training(model):
   model.to(model.device) # model -> CPU/GPU
 
   # Optimizer & Scheduler
+  # add_params = lambda m1, m2: list(m1.parameters()) + list(m2.parameters())
+  # all_params = add_params(feature_extractor, distance_net)
   optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=1e-3)
   return optimizer
 
@@ -42,10 +44,9 @@ def train(model, config):
   margin = 1.0
   # loss_f = torch.nn.TripletMarginLoss(margin)
   loss_fn = torch.nn.BCELoss()
-  dist_net = DistanceNet(config)
 
   # Data
-  batch_size = 3
+  batch_size = 4
   dataset = TripletDataset(config.dataset, transformer, n_fakes=1)
   dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers)
 
@@ -66,6 +67,7 @@ def train(model, config):
       # if optim_steps % val_freq == 0:
         # validator.validate(optim_steps)
 
+      optimizer.zero_grad()
       original, transformed = data
       transformed = transformed[0]
 
@@ -73,25 +75,26 @@ def train(model, config):
       # transformed = torch.randn((4, 3, 512, 512))
 
       inputs = torch.cat((original, transformed))
-      
-      optimizer.zero_grad()
       outputs = model(inputs)
-      original_out, transf_out = outputs.chunk(2)
 
-      anchors, positives, negatives = create_triplets(original_out, transf_out)
-      a_2_p = torch.cat((anchors, positives), dim=1) # Dist -> 0
-      a_2_n = torch.cat((anchors, negatives), dim=1) # Dist -> 1
+      
+      # outputs = feature_extractor(inputs)
+      # original_out, transf_out = outputs.chunk(2)
 
-      distance_input = torch.cat((a_2_p, a_2_n))
-      distance_output = dist_net(distance_input)
+      # anchors, positives, negatives = create_triplets(original_out, transf_out)
+      # a_2_p = torch.cat((anchors, positives), dim=1) # Dist -> 0
+      # a_2_n = torch.cat((anchors, negatives), dim=1) # Dist -> 1
 
-      pos_distance, neg_distance = distance_output.chunk(2)
+      # distance_input = torch.cat((a_2_p, a_2_n))
+      # distance_output = distance_net(distance_input)
+
+      # pos_distance, neg_distance = distance_output.chunk(2)
+      pos_distance, neg_distance = outputs.chunk(2)
       pos_loss = loss_fn(pos_distance, torch.zeros_like(pos_distance))
       neg_loss = loss_fn(neg_distance, torch.ones_like(neg_distance))
       loss = pos_loss + neg_loss
-      # print(loss)
       # loss = loss_f(anchors, positives, negatives)
-      # print(loss)
+      print(loss)
 
       loss.backward()
       optimizer.step()

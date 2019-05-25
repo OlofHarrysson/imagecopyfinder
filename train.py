@@ -1,7 +1,7 @@
 import argparse
 from utils.controller import train
 from config.config_util import choose_config
-from resnet import Resnet18
+from resnet import Resnet18, DistanceNet
 
 def parse_args():
   p = argparse.ArgumentParser()
@@ -16,7 +16,10 @@ def main(config_str):
   config = choose_config(config_str)
 
   # Create model
-  model = Resnet18(config)
+  # feature_extractor = Resnet18(config)
+  # distance_net = DistanceNet(config)
+  model = DistanceNet(config)
+
   train(model, config)
 
 if __name__ == '__main__':
