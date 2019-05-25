@@ -15,7 +15,7 @@ class DefaultConfig():
     # Use GPU. Set to False to only use CPU
     self.use_gpu = True
 
-    self.max_val_batches = 10
+    self.max_val_batches = 999
 
     self.num_workers = 0
 
@@ -42,7 +42,8 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    self.n_model_features = 1
+    self.n_model_features = 3
+    self.max_val_batches = 6
 
 
 class Colab(DefaultConfig):

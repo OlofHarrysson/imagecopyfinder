@@ -64,8 +64,8 @@ def train(model, config):
 
       # Validation
       # if optim_steps % val_freq == val_freq - 1:
-      # if optim_steps % val_freq == 0:
-        # validator.validate(optim_steps)
+      if optim_steps % val_freq == 0:
+        validator.validate(optim_steps)
 
       optimizer.zero_grad()
       original, transformed = data

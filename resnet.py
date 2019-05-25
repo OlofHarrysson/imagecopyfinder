@@ -54,5 +54,14 @@ class DistanceNet(nn.Module):
     distance_output = self.distance_measurer(distance_input)
     return distance_output
 
-  def predict(self, x):
-    pass
+  def predict_embedding(self, inputs):
+    with torch.no_grad():
+      embeddings = self.feature_extractor(inputs)
+      return embeddings
+
+  def calc_distance(self, query_emb, database_emb):
+    inputs = torch.cat((query_emb, database_emb), dim=1)
+    with torch.no_grad():
+      outputs = self.distance_measurer(inputs)
+
+    return outputs

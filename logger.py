@@ -59,16 +59,6 @@ class Logger():
   def log_distance_accuracy(self, positives, negatives, step):
     is_better = positives < negatives
     accuracy = is_better.sum().item() / is_better.numel()
-    
-    print("HEEEJOOO")
-    # print(is_better.numel())
-    # print(is_better.sum().item())
-    # print(is_better)
-    # print(positives)
-    # print(negatives)
-    # print(is_better)
-    print(accuracy)
-
 
     self.viz.line(
       Y=[accuracy],

@@ -36,7 +36,7 @@ class Validator():
 
       inp = to_tensor(im).unsqueeze(0)
       with torch.no_grad():
-        outp = self.model(inp).cpu() # TODO: GPU?
+        outp = self.model.predict_embedding(inp).cpu() # TODO: GPU?
 
       if im_type == 'query':
         query_embeddings[entry] = outp
@@ -50,7 +50,8 @@ class Validator():
     for query_entry, q_emb in query_embeddings.items():
 
       # Query & database entry distances
-      distances = calc_distance(q_emb, database_embeddings)
+      distances = self.calc_distance(q_emb, database_embeddings)
+      # distances = self.model.calc_distance(q_emb, database_embeddings)
 
       # Finds best match & rank of the prediction
       _, dist_sorted = distances.topk(distances.size(0), largest=False)
@@ -70,6 +71,19 @@ class Validator():
     self.model.train()
     print("~~~~~~~~ Finished Validation ~~~~~~~~")
 
+  def calc_distance(self, query, database):
+    ''' Returns distances, an 1-dim tensor for query to all database
+        Returns match_ids, a 1-dim list for database ind
+    '''
+    dist = nn.PairwiseDistance(p=1)
+    distances = torch.tensor([])
+    for db_entries, db_emb in database.items():
+      dd = self.model.calc_distance(query, db_emb).squeeze(dim=0)
+      # dd = dist(query, db_emb)
+      distances = torch.cat((distances, dd))
+      
+    return distances
+
   def save_matches(self, im_id_matches):
     ''' Save best matches as a concatenated image '''
     for query_id, db_id in im_id_matches:
@@ -88,17 +102,7 @@ class Validator():
       concat_im.save('output/%s.png' % query_id)
 
 
-def calc_distance(query, database):
-  ''' Returns distances, an 1-dim tensor for query to all database
-      Returns match_ids, a 1-dim list for database ind
-  '''
-  dist = nn.PairwiseDistance(p=1)
-  distances = torch.tensor([])
-  for db_entries, db_emb in database.items():
-    dd = dist(query, db_emb)
-    distances = torch.cat((distances, dd))
-    
-  return distances
+  
 
 def squarify(im):
   im = to_tensor(im)
