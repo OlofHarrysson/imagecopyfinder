@@ -17,7 +17,6 @@ class Resnet18(nn.Module):
     x = x.to(self.device)
     return self.basenet(x)
 
-
 # TODO: Instead of triplet training, could we have a classifier/discriminator try to tell us the distance between a-p, a-n? Should output 1=similar for a-p and 0 for a-n. This should be better right?
 class DistanceMeasurer(nn.Module):
   def __init__(self, config):
@@ -34,7 +33,6 @@ class DistanceMeasurer(nn.Module):
     x = F.relu(self.fc1(x), inplace=True)
     x = torch.sigmoid(self.fc3(x))
     return x
-
 
 
 class DistanceNet(nn.Module):

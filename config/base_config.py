@@ -42,7 +42,7 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    self.n_model_features = 5
+    self.n_model_features = 1
 
 
 class Colab(DefaultConfig):

@@ -46,7 +46,7 @@ def train(model, config):
   loss_fn = torch.nn.BCELoss()
 
   # Data
-  batch_size = 4
+  batch_size = 16
   dataset = TripletDataset(config.dataset, transformer, n_fakes=1)
   dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers)
 
@@ -90,6 +90,7 @@ def train(model, config):
 
       # pos_distance, neg_distance = distance_output.chunk(2)
       pos_distance, neg_distance = outputs.chunk(2)
+      
       pos_loss = loss_fn(pos_distance, torch.zeros_like(pos_distance))
       neg_loss = loss_fn(neg_distance, torch.ones_like(neg_distance))
       loss = pos_loss + neg_loss
