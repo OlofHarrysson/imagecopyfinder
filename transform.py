@@ -7,7 +7,7 @@ class Transformer():
       transforms.ColorJitter(0.5, 0.5, 0.5, 0.5),
       transforms.RandomHorizontalFlip(p=0.5),
       # transforms.RandomResizedCrop(200, (0.75, 1)),
-      transforms.RandomResizedCrop(32, (0.75, 1)),
+      # transforms.RandomResizedCrop(32, (0.75, 1)),
       # transforms.RandomRotation(10),
       transforms.RandomVerticalFlip(p=0.5),
       transforms.RandomAffine((-30, 30), (0.2, 0.2), shear=30),

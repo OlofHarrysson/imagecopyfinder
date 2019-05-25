@@ -42,12 +42,12 @@ def train(model, config):
   validator = Validator(model, logger, config)
   transformer = Transformer()
   margin = 1.0
-  # loss_f = torch.nn.TripletMarginLoss(margin)
+  triplet_loss_fn = torch.nn.TripletMarginLoss(margin)
   loss_fn = torch.nn.BCELoss()
 
   # Data
-  batch_size = 16
-  dataset = TripletDataset(config.dataset, transformer, n_fakes=1)
+  batch_size = config.batch_size
+  dataset = TripletDataset(config.dataset, transformer, config)
   dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers)
 
   # Init progressbar
@@ -56,7 +56,7 @@ def train(model, config):
   pbar = Progressbar(n_epochs, n_batches)
 
   optim_steps = 0
-  val_freq = 100
+  val_freq = 40
   # Training loop starts here
   for epoch in pbar(range(1, n_epochs + 1)):
     for batch_i, data in enumerate(dataloader, 1):
@@ -71,38 +71,23 @@ def train(model, config):
       original, transformed = data
       transformed = transformed[0]
 
-      # original = torch.randn((4, 3, 512, 512))
-      # transformed = torch.randn((4, 3, 512, 512))
-
       inputs = torch.cat((original, transformed))
       outputs = model(inputs)
-
-      
-      # outputs = feature_extractor(inputs)
-      # original_out, transf_out = outputs.chunk(2)
-
-      # anchors, positives, negatives = create_triplets(original_out, transf_out)
-      # a_2_p = torch.cat((anchors, positives), dim=1) # Dist -> 0
-      # a_2_n = torch.cat((anchors, negatives), dim=1) # Dist -> 1
-
-      # distance_input = torch.cat((a_2_p, a_2_n))
-      # distance_output = distance_net(distance_input)
-
-      # pos_distance, neg_distance = distance_output.chunk(2)
-      pos_distance, neg_distance = outputs.chunk(2)
+      distance_output, anchors, positives, negatives = outputs
+      pos_distance, neg_distance = distance_output.chunk(2)
       
       pos_loss = loss_fn(pos_distance, torch.zeros_like(pos_distance))
       neg_loss = loss_fn(neg_distance, torch.ones_like(neg_distance))
-      loss = pos_loss + neg_loss
-      # loss = loss_f(anchors, positives, negatives)
-      print(loss)
+      triplet_loss = triplet_loss_fn(anchors, positives, negatives)
+      loss = pos_loss + neg_loss + triplet_loss
 
       loss.backward()
       optimizer.step()
       optim_steps += 1
 
-      # logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
+      logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_distance_accuracy(pos_distance, neg_distance, optim_steps)
+      logger.log_loss(pos_loss, neg_loss, triplet_loss, loss, optim_steps)
       # Frees up GPU memory
       del data; del outputs
 

@@ -13,6 +13,7 @@ class Logger():
     clear_envs(self.viz)
 
   def easy_or_hard(self, anchors, positives, negatives, margin, step):
+    # TODO: Change? Still relavant for the triplet loss
     dist = nn.PairwiseDistance(p=2)
     a_to_p = dist(anchors, positives)
     a_to_n = dist(anchors, negatives)
@@ -31,7 +32,7 @@ class Logger():
       Y=Y.reshape((1, 3)),
       X=[step],
       update='append',
-      win='Loss_stacked',
+      win='TripletDifficulty',
       opts=dict(
           fillarea=True,
           xlabel='Steps',
@@ -104,5 +105,39 @@ class Logger():
           xlabel='Rank',
           ylabel='Number of Predictions',
           title='Validation Rank',
+      )
+    )
+
+  def log_loss(self, pos_loss, neg_loss, triplet_loss, loss, step):
+    self.viz.line(
+      Y=[loss.item()],
+      X=[step],
+      update='append',
+      win='TotalLoss',
+      opts=dict(
+          xlabel='Steps',
+          ylabel='Loss',
+          title='Training Loss',
+      )
+    )
+
+    total_loss = loss.item()
+    pl = pos_loss.item() / total_loss
+    nl = neg_loss.item() / total_loss
+    tl = triplet_loss.item() / total_loss
+
+    Y = torch.Tensor([pl, pl+nl, pl+nl+tl]).numpy()
+    self.viz.line(
+      Y=Y.reshape((1, 3)),
+      X=[step],
+      update='append',
+      win='LossStacked',
+      opts=dict(
+          fillarea=True,
+          xlabel='Steps',
+          ylabel='Percentage',
+          title='Loss Percentages',
+          stackgroup='one',
+          legend=['Triplet', 'Positive', 'Negative']
       )
     )

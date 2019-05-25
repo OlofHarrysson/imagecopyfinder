@@ -10,11 +10,12 @@ import json
 # http://icvl.ee.ic.ac.uk/DescrWorkshop/index.html#Challenge
 
 class TripletDataset(Dataset):
-  def __init__(self, im_dirs, transform, n_fakes):
+  def __init__(self, im_dirs, transform, config, n_fakes=1):
     self.n_fakes = n_fakes
     self.transform = transform
     self.to_tensor = transforms.ToTensor()
     self.image_files = []
+    self.im_size = config.image_input_size
 
     is_hidden_file = lambda path: path.name[0] == '.'
     if type(im_dirs) == str:
@@ -38,7 +39,7 @@ class TripletDataset(Dataset):
     if im.mode != 'RGB': # Handle black & white images
       im = im.convert(mode='RGB') 
 
-    uniform_size = transforms.Resize((300, 300))
+    uniform_size = transforms.Resize((self.im_size, self.im_size))
     im = uniform_size(im)
 
     transformed_ims = []

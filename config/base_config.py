@@ -26,6 +26,11 @@ class DefaultConfig():
 
     self.n_model_features = 10
 
+    # Data input size
+    self.image_input_size = 32
+
+    self.batch_size = 3
+
   def get_parameters(self):
     return OrderedDict(sorted(vars(self).items()))
 
@@ -53,4 +58,7 @@ class Colab(DefaultConfig):
     self.num_workers = 16
     self.dataset = 'datasets/imagenet'
     self.n_model_features = 512
+
+    self.image_input_size = 300
+    self.batch_size = 32
 

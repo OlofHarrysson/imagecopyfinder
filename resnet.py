@@ -52,7 +52,7 @@ class DistanceNet(nn.Module):
 
     distance_input = torch.cat((a_2_p, a_2_n))
     distance_output = self.distance_measurer(distance_input)
-    return distance_output
+    return distance_output, anchors, positives, negatives
 
   def predict_embedding(self, inputs):
     with torch.no_grad():
@@ -64,4 +64,4 @@ class DistanceNet(nn.Module):
     with torch.no_grad():
       outputs = self.distance_measurer(inputs)
 
-    return outputs
+    return outputs.cpu()
