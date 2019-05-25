@@ -78,9 +78,25 @@ def dropout():
 
 
 if __name__ == '__main__':
+  import psutil
+
+  def clear_envs(viz):
+    [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
+
+  def kill_image_window():
+    for proc in psutil.process_iter():
+      if proc.name() == "Preview":
+          proc.kill()
+          # print(proc)
+
   transformer = Transformer()
   im = Image.open('datasets/sheepie.jpg')
+  viz = visdom.Visdom(port='6006')
+  clear_envs(viz)
 
-  t_im = transformer(im)
-  print(t_im)
-  t_im.show()
+
+  for i in range(3):
+    t_im = transformer(im)
+    t_im.show()
+    input("PRESS KEY TO CONTINUE.")
+    kill_image_window()
