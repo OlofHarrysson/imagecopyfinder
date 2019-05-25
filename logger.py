@@ -89,7 +89,7 @@ class Logger():
       opts=dict(
           xlabel='Steps',
           ylabel='Validation Accuracy',
-          title='Top-k Accuracy',
+          title='Top-k Validation Accuracy',
           ytickmin = 0,
           ytickmax = 1,
           legend=['Top1', 'Top3', 'Top5'],
@@ -97,7 +97,7 @@ class Logger():
     )
 
   def log_rank(self, ranks, step):
-    # TODO: Make first one red and output the percentage?
+    # TODO: Output some kind of mean for the distro?
     self.viz.histogram(
       X=[ranks],
       win='Rank',
@@ -109,8 +109,9 @@ class Logger():
     )
 
   def log_loss(self, pos_loss, neg_loss, triplet_loss, loss, step):
+    Y = torch.Tensor([loss, triplet_loss, pos_loss, neg_loss]).numpy()
     self.viz.line(
-      Y=[loss.item()],
+      Y=Y.reshape((1,4)),
       X=[step],
       update='append',
       win='TotalLoss',
@@ -118,26 +119,28 @@ class Logger():
           xlabel='Steps',
           ylabel='Loss',
           title='Training Loss',
+          legend=['Total', 'Triplet', 'Positive', 'Negative']
+
       )
     )
 
-    total_loss = loss.item()
-    pl = pos_loss.item() / total_loss
-    nl = neg_loss.item() / total_loss
-    tl = triplet_loss.item() / total_loss
+    # total_loss = loss.item()
+    # pl = pos_loss.item() / total_loss
+    # nl = neg_loss.item() / total_loss
+    # tl = triplet_loss.item() / total_loss
 
-    Y = torch.Tensor([pl, pl+nl, pl+nl+tl]).numpy()
-    self.viz.line(
-      Y=Y.reshape((1, 3)),
-      X=[step],
-      update='append',
-      win='LossStacked',
-      opts=dict(
-          fillarea=True,
-          xlabel='Steps',
-          ylabel='Percentage',
-          title='Loss Percentages',
-          stackgroup='one',
-          legend=['Triplet', 'Positive', 'Negative']
-      )
-    )
+    # Y = torch.Tensor([pl, pl+nl, pl+nl+tl]).numpy()
+    # self.viz.line(
+    #   Y=Y.reshape((1, 3)),
+    #   X=[step],
+    #   update='append',
+    #   win='LossStacked',
+    #   opts=dict(
+    #       fillarea=True,
+    #       xlabel='Steps',
+    #       ylabel='Percentage',
+    #       title='Loss Percentages',
+    #       stackgroup='one',
+    #       legend=['Triplet', 'Positive', 'Negative']
+    #   )
+    # )
