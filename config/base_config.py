@@ -42,6 +42,8 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
+    self.n_model_features = 5
+
 
 class Colab(DefaultConfig):
   def __init__(self, config_str):

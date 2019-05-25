@@ -56,6 +56,24 @@ class Logger():
       )
     )
 
+  def log_distance_accuracy(self, positives, negatives, step):
+    is_better = positives < negatives
+    accuracy = is_better.sum() / is_better.numel()
+
+    self.viz.line(
+      Y=[accuracy],
+      X=[step],
+      update='append',
+      win='DistAccuracy',
+      opts=dict(
+          xlabel='Steps',
+          ylabel='Accuracy',
+          title='Distance Accuracy',
+          ytickmin = 0,
+          ytickmax = 1
+      )
+    )
+
   def log_accuracy(self, ranks, step):
     n_ranks = len(ranks)
     top_x = lambda t_x: len([i for i in ranks if i <= t_x]) / n_ranks

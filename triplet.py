@@ -15,11 +15,23 @@ def create_triplets(originals, transformed):
 
   return anchors, positives, negatives
 
+def create_doublets(embeddings):
+  batch_size = embeddings.size(0)
+  n_repeat = batch_size - 1
+
+  anchors = embeddings.repeat_interleave(n_repeat, dim=0)
+  negatives = embeddings.repeat(n_repeat + 1, 1)
+
+  mask = [i for i in range(batch_size**2) if i%(batch_size+1) != 0]
+  negatives = negatives[mask]
+
+  doublet = torch.cat((anchors, negatives), dim=1)
+  return doublet
+
 
 def test():
-  # batch = [1, 2, 3, 4]
-  b_size = 32
-  batch = range(b_size)
+  b_size = 3
+  batch = range(1, b_size+1)
   batch2 = [b+.5 for b in batch]
 
   a = torch.tensor(batch)
@@ -55,5 +67,5 @@ def test2():
   print(p)
 
 if __name__ == '__main__':
-  # test()
-  test2()
+  test()
+  # test2()

@@ -21,7 +21,6 @@ class TripletDataset(Dataset):
       im_dirs = [im_dirs]
 
     for im_dir in im_dirs:
-      print(im_dir)
       assert Path(im_dir).exists(), "Directory doesn't exist"
       all_files = Path(im_dir).iterdir()
       image_files = [p for p in all_files if not is_hidden_file(p)]

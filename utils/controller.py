@@ -2,11 +2,12 @@ import torch
 from utils.utils import ProgressbarWrapper as Progressbar
 from data import TripletDataset
 from torch.utils.data import DataLoader
-from triplet import create_triplets
+from triplet import create_triplets, create_doublets
 from logger import Logger
 from utils.validator import Validator
 from transform import Transformer
 from pathlib import Path
+from resnet import DistanceNet
 
 # TODO: I can increase the augmentation depending on how many easy/hard there are. Possibly also increase margin?
 # TODO: Change distance norm 2->1? I want the system to match because there are a lot of features that are close, not fuck up because one feature is bad and dominates the others. Could even select the top% features that matchest best.
@@ -18,7 +19,6 @@ from pathlib import Path
 # TODO: Config. Default, laptop & colab
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
 
-# TODO: Instead of triplet training, could we have a classifier/discriminator try to tell us the distance between a-p, a-n? Should output 1=similar for a-p and 0 for a-n. This should be better right?
 
 def clear_output_dir():
   [p.unlink() for p in Path('output').iterdir()]
@@ -40,11 +40,12 @@ def train(model, config):
   validator = Validator(model, logger, config)
   transformer = Transformer()
   margin = 1.0
-  loss_f = torch.nn.TripletMarginLoss(margin)
+  # loss_f = torch.nn.TripletMarginLoss(margin)
+  loss_fn = torch.nn.BCELoss()
+  dist_net = DistanceNet(config)
 
   # Data
-  batch_size = 16
-  print('Dataset', config.dataset)
+  batch_size = 3
   dataset = TripletDataset(config.dataset, transformer, n_fakes=1)
   dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers)
 
@@ -62,8 +63,8 @@ def train(model, config):
 
       # Validation
       # if optim_steps % val_freq == val_freq - 1:
-      if optim_steps % val_freq == 0:
-        validator.validate(optim_steps)
+      # if optim_steps % val_freq == 0:
+        # validator.validate(optim_steps)
 
       original, transformed = data
       transformed = transformed[0]
@@ -78,14 +79,26 @@ def train(model, config):
       original_out, transf_out = outputs.chunk(2)
 
       anchors, positives, negatives = create_triplets(original_out, transf_out)
-      loss = loss_f(anchors, positives, negatives)
+      a_2_p = torch.cat((anchors, positives), dim=1) # Dist -> 0
+      a_2_n = torch.cat((anchors, negatives), dim=1) # Dist -> 1
+
+      distance_input = torch.cat((a_2_p, a_2_n))
+      distance_output = dist_net(distance_input)
+
+      pos_distance, neg_distance = distance_output.chunk(2)
+      pos_loss = loss_fn(pos_distance, torch.zeros_like(pos_distance))
+      neg_loss = loss_fn(neg_distance, torch.ones_like(neg_distance))
+      loss = pos_loss + neg_loss
+      # print(loss)
+      # loss = loss_f(anchors, positives, negatives)
       # print(loss)
 
       loss.backward()
       optimizer.step()
       optim_steps += 1
 
-      logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
+      # logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
+      logger.log_distance_accuracy(pos_distance, neg_distance, optim_steps)
       # Frees up GPU memory
       del data; del outputs
 
