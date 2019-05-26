@@ -76,3 +76,38 @@ class CopyDataset(Dataset):
     im = open_image(data['path'])
     
     return im, data['im_type'], data['match_id'], data['im_id']
+
+
+
+if __name__ == '__main__':
+  import visdom, torch, random
+  from transform import Transformer
+  from config.config_util import choose_config
+  import imgaug as ia
+
+  seed = random.randint(0, 10000)
+  ia.seed(seed)
+
+  def clear_envs(viz):
+    [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
+
+  viz = visdom.Visdom(port='6006')
+  clear_envs(viz)
+
+  transformer = Transformer()
+  config = choose_config('colab')
+  dataset = TripletDataset('datasets/places365/validation', transformer, config)
+
+  data_inds = list(range(len(dataset)))
+  random.shuffle(data_inds)
+  n_to_show = 5
+  data_inds = data_inds[:n_to_show]
+
+  def transform_im(ind):
+    im, t_im = dataset[ind]
+    t_im = t_im[0]
+    return torch.cat((im, t_im), dim=1)
+
+  for i in data_inds:
+    im = transform_im(i)
+    viz.image(im)

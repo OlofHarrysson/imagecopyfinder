@@ -5,15 +5,9 @@ import imgaug.augmenters as iaa
 # from imgaug import parameters as iap
 import numpy as np
 
-# Temp: 239 gb avaiable. 46% of 40 gb. 21 gb left
-# 239 - 21 = 218 gb when its done
-
-
 class Transformer():
   def __init__(self):
-    # TODO: Add noop in every transform
-
-    self.im_size = 200
+    self.im_size = 100 # TODO: When do I actually want to do this? Also resize in the dataset function. I'd say do crop in the dropout function since they don't match that well
     sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
     self.seq = iaa.Sequential([
@@ -22,16 +16,18 @@ class Transformer():
         sometimes(noise()),
         sometimes(contrast()),
         sometimes(fuckery()),
-        sometimes(dropout()),
         sometimes(flip()),
         sometimes(geometric()),
         sometimes(segmentation()),
         sometimes(crop()),
+        sometimes(iaa.OneOf([
+          dropout(),
+          uniform_size(self.im_size),
+        ])),
+        # TODO: Blend with other images.
       ],
       random_order=True),
       
-      # Always do this at the end
-      # uniform_size(self.im_size),
     ])
 
   def __call__(self, im):
@@ -121,7 +117,7 @@ def uniform_size(im_size):
   ])
 
 if __name__ == '__main__':
-  import psutil, time, visdom, random
+  import visdom, random
   seed = random.randint(0, 10000)
   ia.seed(seed)
 

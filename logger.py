@@ -8,13 +8,14 @@ def clear_envs(viz):
   # [viz.delete_env(env) for env in viz.get_env_list()] # Kills envs
 
 class Logger():
-  def __init__(self):
+  def __init__(self, config):
+    self.config = config
     self.viz = visdom.Visdom(port='6006')
     clear_envs(self.viz)
 
   def easy_or_hard(self, anchors, positives, negatives, margin, step):
     # TODO: Change? Still relavant for the triplet loss
-    dist = nn.PairwiseDistance(p=2)
+    dist = nn.PairwiseDistance(p=self.config.distance_norm)
     a_to_p = dist(anchors, positives)
     a_to_n = dist(anchors, negatives)
 
@@ -98,13 +99,15 @@ class Logger():
 
   def log_rank(self, ranks, step):
     # TODO: Output some kind of mean for the distro?
+
+    # Bins several values together when there are a lot of ranks
     self.viz.histogram(
       X=[ranks],
       win='Rank',
       opts=dict(
           xlabel='Rank',
           ylabel='Number of Predictions',
-          title='Validation Rank',
+          title='~Validation Rank',
       )
     )
 

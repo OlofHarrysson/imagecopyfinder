@@ -38,11 +38,11 @@ def init_training(model):
 def train(model, config):
   # clear_output_dir()
   optimizer = init_training(model)
-  logger = Logger()
+  logger = Logger(config)
   validator = Validator(model, logger, config)
   transformer = Transformer()
   margin = 1.0
-  triplet_loss_fn = torch.nn.TripletMarginLoss(margin)
+  triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm)
   loss_fn = torch.nn.BCELoss()
 
   # Data
@@ -56,7 +56,7 @@ def train(model, config):
   pbar = Progressbar(n_epochs, n_batches)
 
   optim_steps = 0
-  val_freq = 40
+  val_freq = 100
   # Training loop starts here
   for epoch in pbar(range(1, n_epochs + 1)):
     for batch_i, data in enumerate(dataloader, 1):
@@ -79,7 +79,9 @@ def train(model, config):
       pos_loss = loss_fn(pos_distance, torch.zeros_like(pos_distance))
       neg_loss = loss_fn(neg_distance, torch.ones_like(neg_distance))
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-      loss = pos_loss + neg_loss + triplet_loss
+      # loss = pos_loss + neg_loss + triplet_loss
+      loss = triplet_loss
+      # loss = pos_loss + neg_loss
 
       loss.backward()
       optimizer.step()

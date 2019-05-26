@@ -54,7 +54,7 @@ class Validator():
       # distances = self.model.calc_distance(q_emb, database_embeddings)
 
       # Finds best match & rank of the prediction
-      _, dist_sorted = distances.topk(distances.size(0), largest=False)
+      _, dist_sorted = distances.topk(distances.size(0), largest=True) # TODO: largest for cosine.
       for rank_number, dist_ind in enumerate(dist_sorted, 1):
         db_entry = database_keys[dist_ind]
         
@@ -75,11 +75,12 @@ class Validator():
     ''' Returns distances, an 1-dim tensor for query to all database
         Returns match_ids, a 1-dim list for database ind
     '''
-    dist = nn.PairwiseDistance(p=1)
+    # dist = nn.PairwiseDistance(p=1)
+    dist = nn.CosineSimilarity()
     distances = torch.tensor([])
     for db_entries, db_emb in database.items():
-      dd = self.model.calc_distance(query, db_emb).squeeze(dim=0)
-      # dd = dist(query, db_emb)
+      # dd = self.model.calc_distance(query, db_emb).squeeze(dim=0)
+      dd = dist(query, db_emb)
       distances = torch.cat((distances, dd))
       
     return distances
@@ -100,8 +101,6 @@ class Validator():
 
       concat_im = to_pil_image(im)
       concat_im.save('output/%s.png' % query_id)
-
-
   
 
 def squarify(im):
