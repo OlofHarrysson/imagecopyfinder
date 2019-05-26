@@ -5,35 +5,45 @@ import imgaug.augmenters as iaa
 # from imgaug import parameters as iap
 import numpy as np
 
+# Temp: 239 gb avaiable. 46% of 40 gb. 21 gb left
+# 239 - 21 = 218 gb when its done
+
+
 class Transformer():
   def __init__(self):
-    # self.transform = transforms.Compose([
-    #   transforms.ColorJitter(0.5, 0.5, 0.5, 0.5),
-    #   transforms.RandomHorizontalFlip(p=0.5),
-    #   # transforms.RandomResizedCrop(200, (0.75, 1)),
-    #   # transforms.RandomResizedCrop(32, (0.75, 1)),
-    #   # transforms.RandomRotation(10),
-    #   transforms.RandomVerticalFlip(p=0.5),
-    #   transforms.RandomAffine((-30, 30), (0.2, 0.2), shear=30),
-    # ])
+    # TODO: Add noop in every transform
 
+    self.im_size = 200
     sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
-    self.seq = iaa.Sequential(
-      [
-        blur(),
-        noise(),
-        contrast(),
-        fuckery(),
-        dropout(),
+    self.seq = iaa.Sequential([
+      iaa.Sequential([
+        sometimes(blur()),
+        sometimes(noise()),
+        sometimes(contrast()),
+        sometimes(fuckery()),
+        sometimes(dropout()),
+        sometimes(flip()),
+        sometimes(geometric()),
+        sometimes(segmentation()),
+        sometimes(crop()),
       ],
-      random_order=True
-    )
+      random_order=True),
+      
+      # Always do this at the end
+      # uniform_size(self.im_size),
+    ])
 
   def __call__(self, im):
-    # return self.transform(im)
     augmented_im = self.seq.augment_image(np.array(im))
     return Image.fromarray(augmented_im)
+
+  def numpy_transform(self, im):
+    return self.seq.augment_image(np.array(im))
+
+  def grid(self, im):
+    self.seq.show_grid(im, cols=6, rows=4)
+
 
 def blur():
   return iaa.OneOf([
@@ -66,37 +76,75 @@ def contrast():
 def fuckery():
   return iaa.OneOf([
     iaa.Invert(0.1, per_channel=0.5),
-    iaa.JpegCompression(compression=(20, 95)),
+    iaa.JpegCompression(compression=(80, 95)),
   ])
 
 
 def dropout():
   return iaa.OneOf([
-    iaa.CoarseDropout((0.0, 0.5), size_percent=(0.02, 0.5))
-    # TODO: Coursesaltpepper?
+    # Low size_percent -> big dropout rectangles
+    iaa.CoarseDropout((0.0, 0.5), size_percent=0.01, min_size=2),
+    iaa.CoarseDropout((0.0, 0.5), size_percent=(0.01, 0.02)),
+    iaa.CoarseDropout((0.0, 0.5), size_percent=(0.02, 0.1)),
   ])
 
+def flip():
+  return iaa.SomeOf(2, [
+    iaa.Fliplr(0.2),
+    iaa.Flipud(0.1),
+  ])
+
+def geometric():
+  return iaa.OneOf([
+    iaa.Affine(scale=2.0),
+    iaa.ElasticTransformation(alpha=(0.0, 70.0), sigma=5.0),
+    iaa.PerspectiveTransform(scale=(0.01, 0.10)),
+    # iaa.PiecewiseAffine(scale=(0.01, 0.05)),
+    iaa.Rot90((1, 3), keep_size=False)
+  ])
+
+def segmentation():
+  return iaa.Sometimes(0.2,
+    iaa.Superpixels(p_replace=(0.25, 1.0), n_segments=(16, 128))
+  )
+
+def crop():
+  return iaa.OneOf([
+    iaa.Crop(percent=([0.05, 0.1], [0.05, 0.1], [0.05, 0.1], [0.05, 0.1])),
+
+  ])
+
+def uniform_size(im_size):
+  return iaa.Sequential([
+    iaa.PadToFixedSize(width=im_size, height=im_size),
+    iaa.CropToFixedSize(width=im_size, height=im_size)
+  ])
 
 if __name__ == '__main__':
-  import psutil
+  import psutil, time, visdom, random
+  seed = random.randint(0, 10000)
+  ia.seed(seed)
 
   def clear_envs(viz):
     [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
 
-  def kill_image_window():
-    for proc in psutil.process_iter():
-      if proc.name() == "Preview":
-          proc.kill()
-          # print(proc)
-
   transformer = Transformer()
   im = Image.open('datasets/sheepie.jpg')
+  print(im.size)
   viz = visdom.Visdom(port='6006')
   clear_envs(viz)
 
+  # t_im = transformer.numpy_transform(im)
+  # t_im = np.rollaxis(t_im, 2)
 
-  for i in range(3):
-    t_im = transformer(im)
-    t_im.show()
-    input("PRESS KEY TO CONTINUE.")
-    kill_image_window()
+  transformer.grid([np.array(im)])
+
+
+  def transform_im(im):
+    t_im = transformer.numpy_transform(im)
+    return np.rollaxis(t_im, 2)
+
+  # t_ims = [transform_im(im) for _ in range(4)]
+  # t_im.show()
+  # viz.images(t_ims)
+  # time.sleep(1)

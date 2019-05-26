@@ -9,6 +9,12 @@ import json
 # https://archive.org/details/ukbench
 # http://icvl.ee.ic.ac.uk/DescrWorkshop/index.html#Challenge
 
+
+#TODO Other datasets
+# SAVOIAS 1400 ims https://github.com/esaraee/Savoias-Dataset
+# Tencent 17M ims, 78k in val. From imagenet+openimages https://github.com/Tencent/tencent-ml-images#download-images
+# Places. Looked diverse and easy to download. Big dataset :)
+
 class TripletDataset(Dataset):
   def __init__(self, im_dirs, transform, config, n_fakes=1):
     self.n_fakes = n_fakes
