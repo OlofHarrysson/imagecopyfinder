@@ -10,13 +10,21 @@ class Resnet18(nn.Module):
     super().__init__()
     self.device = 'cuda' if config.use_gpu else 'cpu'
 
-    # net18 = 512, net34 = 512, res50 = 2048
+    n_features = config.n_model_features
     self.basenet = models.resnet34(pretrained=config.pretrained)
-    self.basenet.fc = nn.Linear(512, config.n_model_features)
+    # net18 = 512, net34 = 512, res50 = 2048
+    self.basenet.fc = nn.Linear(512, n_features)
+    self.fc1 = nn.Linear(n_features, n_features)
+    self.fc2 = nn.Linear(n_features, n_features)
+
+    # TODO: Readlines writelines snippet
     
   def forward(self, x):
     x = x.to(self.device)
-    return self.basenet(x)
+    x = self.basenet(x)
+    x = F.relu(self.fc1(x), inplace=True)
+    x = self.fc2(x)
+    return x
 
 # TODO: Make several distance metrics. One for ecluedian distance, one for cosine similarity, etc. Name it similarity measurer or something
 class DistanceMeasurer(nn.Module):

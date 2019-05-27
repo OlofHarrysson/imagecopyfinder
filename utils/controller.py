@@ -1,4 +1,4 @@
-import torch
+import torch, math
 from utils.utils import ProgressbarWrapper as Progressbar
 from data import TripletDataset
 from torch.utils.data import DataLoader
@@ -24,20 +24,21 @@ def clear_output_dir():
   [p.unlink() for p in Path('output').iterdir()]
 
 
-def init_training(model):
+def init_training(model, config):
   torch.backends.cudnn.benchmark = True # Optimizes cudnn
   model.to(model.device) # model -> CPU/GPU
 
   # Optimizer & Scheduler
-  # add_params = lambda m1, m2: list(m1.parameters()) + list(m2.parameters())
-  # all_params = add_params(feature_extractor, distance_net)
-  optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=1e-3)
-  return optimizer
+  # TODO CyclicLR
+  optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=config.start_lr)
+  scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
+
+  return optimizer, scheduler
 
 
 def train(model, config):
   # clear_output_dir()
-  optimizer = init_training(model)
+  optimizer, lr_scheduler = init_training(model, config)
   logger = Logger(config)
   validator = Validator(model, logger, config)
   transformer = Transformer()
@@ -52,20 +53,27 @@ def train(model, config):
 
   # Init progressbar
   n_batches = len(dataloader)
-  n_epochs = 100
+  n_epochs = math.ceil(config.optim_steps / n_batches)
   pbar = Progressbar(n_epochs, n_batches)
 
+  def get_lr(optimiz):
+    for param_group in optimiz.param_groups:
+      return param_group['lr']
+
   optim_steps = 0
-  val_freq = 100
+  val_freq = config.validation_freq
   # Training loop starts here
   for epoch in pbar(range(1, n_epochs + 1)):
     for batch_i, data in enumerate(dataloader, 1):
       pbar.update(epoch, batch_i)
 
       # Validation
-      # if optim_steps % val_freq == val_freq - 1:
       if optim_steps % val_freq == 0:
         validator.validate(optim_steps)
+
+      # Decrease learning rate
+      if optim_steps % config.lr_step_frequency == 0:
+        lr_scheduler.step()
 
       optimizer.zero_grad()
       original, transformed = data
@@ -90,6 +98,7 @@ def train(model, config):
       logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_distance_accuracy(pos_distance, neg_distance, optim_steps)
       logger.log_loss(pos_loss, neg_loss, triplet_loss, loss, optim_steps)
+      logger.log_lr(get_lr(optimizer), optim_steps)
       # Frees up GPU memory
       del data; del outputs
 

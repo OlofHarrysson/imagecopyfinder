@@ -127,23 +127,15 @@ class Logger():
       )
     )
 
-    # total_loss = loss.item()
-    # pl = pos_loss.item() / total_loss
-    # nl = neg_loss.item() / total_loss
-    # tl = triplet_loss.item() / total_loss
-
-    # Y = torch.Tensor([pl, pl+nl, pl+nl+tl]).numpy()
-    # self.viz.line(
-    #   Y=Y.reshape((1, 3)),
-    #   X=[step],
-    #   update='append',
-    #   win='LossStacked',
-    #   opts=dict(
-    #       fillarea=True,
-    #       xlabel='Steps',
-    #       ylabel='Percentage',
-    #       title='Loss Percentages',
-    #       stackgroup='one',
-    #       legend=['Triplet', 'Positive', 'Negative']
-    #   )
-    # )
+  def log_lr(self, lr, step):
+    self.viz.line(
+      Y=[lr],
+      X=[step],
+      update='append',
+      win='learning_rate',
+      opts=dict(
+          xlabel='Steps',
+          ylabel='Accuracy',
+          title='Learning rate',
+      )
+    )
