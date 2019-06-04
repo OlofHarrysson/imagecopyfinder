@@ -11,9 +11,10 @@ class Resnet18(nn.Module):
     self.device = 'cuda' if config.use_gpu else 'cpu'
 
     n_features = config.n_model_features
+    # self.basenet = models.resnet18(pretrained=config.pretrained)
     self.basenet = models.resnet34(pretrained=config.pretrained)
-    # net18 = 512, net34 = 512, res50 = 2048
-    self.basenet.fc = nn.Linear(512, n_features)
+    in_features = self.basenet.fc.in_features
+    self.basenet.fc = nn.Linear(in_features, n_features)
     self.fc1 = nn.Linear(n_features, n_features)
     self.fc2 = nn.Linear(n_features, n_features)
 
@@ -21,7 +22,7 @@ class Resnet18(nn.Module):
     
   def forward(self, x):
     x = x.to(self.device)
-    x = self.basenet(x)
+    x = F.relu(self.basenet(x), inplace=True)
     x = F.relu(self.fc1(x), inplace=True)
     x = self.fc2(x)
     return x

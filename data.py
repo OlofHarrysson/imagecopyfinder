@@ -10,10 +10,16 @@ import json
 # http://icvl.ee.ic.ac.uk/DescrWorkshop/index.html#Challenge
 
 
-#TODO Other datasets
+#TODO Other training datasets
 # SAVOIAS 1400 ims https://github.com/esaraee/Savoias-Dataset
 # Tencent 17M ims, 78k in val. From imagenet+openimages https://github.com/Tencent/tencent-ml-images#download-images
 # Places. Looked diverse and easy to download. Big dataset :)
+
+
+# TODO: Other val datasets
+# Oxford5K, Paris6K of buildings
+# This one? https://github.com/chenjun082/holidays
+
 
 class TripletDataset(Dataset):
   def __init__(self, im_dirs, transform, config, n_fakes=1):
@@ -29,8 +35,7 @@ class TripletDataset(Dataset):
 
     for im_dir in im_dirs:
       assert Path(im_dir).exists(), "Directory doesn't exist"
-      all_files = Path(im_dir).iterdir()
-      image_files = [p for p in all_files if not is_hidden_file(p)]
+      image_files = [f for f in Path(im_dir).glob('**/*.jpg')]
       self.image_files.extend(image_files)
 
     assert self.image_files,'{} dataset is empty'.format(im_dir)

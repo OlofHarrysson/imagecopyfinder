@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+# TODO: How many positive example and how many negatives ratio?
 
 def create_triplets(originals, transformed):
   batch_size = originals.size(0)
