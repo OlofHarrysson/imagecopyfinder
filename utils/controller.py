@@ -13,10 +13,8 @@ from resnet import DistanceNet
 # TODO: Change distance norm 2->1? I want the system to match because there are a lot of features that are close, not fuck up because one feature is bad and dominates the others. Could even select the top% features that matchest best.
 # TODO: Could this be used as a pretraining system for triplet loss
 
-# TODO: Create some more elaborate transforms. Combine them.
 # TODO: Create a validation dataset. contains both real and adverserial examples, labeled so we can measure accuracy
 
-# TODO: Config. Default, laptop & colab
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
 
 

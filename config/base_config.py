@@ -63,8 +63,6 @@ class Laptop(DefaultConfig):
     self.use_gpu = False
     self.n_model_features = 3
     self.max_val_batches = 10
-    self.dataset = 'datasets/places365/zip_test'
-
 
 
 class Colab(DefaultConfig):
@@ -72,8 +70,9 @@ class Colab(DefaultConfig):
     super().__init__(config_str)
     self.max_val_batches = 100
     self.num_workers = 16
-    self.dataset = 'datasets/imagenet'
-    # self.dataset = 'datasets/places365/validation'
+    # self.dataset = 'datasets/imagenet'
+    self.dataset = 'datasets/places365/validation'
+    
     self.n_model_features = 512
 
     self.image_input_size = 300

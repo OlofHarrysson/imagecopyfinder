@@ -28,14 +28,16 @@ class TripletDataset(Dataset):
     self.to_tensor = transforms.ToTensor()
     self.image_files = []
     self.im_size = config.image_input_size
-
-    is_hidden_file = lambda path: path.name[0] == '.'
+    
+    im_types = ['.jpg', '.png']
+    is_image = lambda path: path.suffix in im_types
+    
     if type(im_dirs) == str:
       im_dirs = [im_dirs]
 
     for im_dir in im_dirs:
       assert Path(im_dir).exists(), "Directory doesn't exist"
-      image_files = [f for f in Path(im_dir).glob('**/*.jpg')]
+      image_files = [f for f in Path(im_dir).glob('**/*') if is_image(f)]
       self.image_files.extend(image_files)
 
     assert self.image_files,'{} dataset is empty'.format(im_dir)

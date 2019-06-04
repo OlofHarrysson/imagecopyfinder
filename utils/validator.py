@@ -23,25 +23,7 @@ class Validator():
     print("~~~~~~~~ Started Validation ~~~~~~~~")
     self.model.eval()
 
-    # Create embeddings
-    query_embeddings = OrderedDict()
-    database_embeddings = OrderedDict()
-
-    for ind, data in enumerate(self.dataloader, 1):
-      if ind > self.config.max_val_batches:
-        break
-
-      im, im_type, match_id, im_id = data
-      entry = Entry(im_type, match_id, im_id)
-
-      inp = to_tensor(im).unsqueeze(0)
-      with torch.no_grad():
-        outp = self.model.predict_embedding(inp).cpu() # TODO: GPU?
-
-      if im_type == 'query':
-        query_embeddings[entry] = outp
-      elif im_type == 'database':
-        database_embeddings[entry] = outp
+    query_embeddings, database_embeddings = self.calc_embeddings()
 
     # Calculates number of corrects
     best_matches, ranks = [], []
@@ -50,8 +32,14 @@ class Validator():
     for query_entry, q_emb in query_embeddings.items():
 
       # Query & database entry distances
-      distances = self.calc_distance(q_emb, database_embeddings)
-      # distances = self.model.calc_distance(q_emb, database_embeddings)
+      # distances = self.calc_distance(q_emb, database_embeddings)
+      similarities = self.model.calc_distance(q_emb, database_embeddings)
+      qwe
+
+      # distances is a list or something.
+
+      # for distances, metric in distances_something.items():
+        # find topK and this other shit
 
       # Finds best match & rank of the prediction
       _, dist_sorted = distances.topk(distances.size(0), largest=True) # TODO: largest for cosine.
@@ -70,6 +58,27 @@ class Validator():
     # self.save_matches(best_matches)
     self.model.train()
     print("~~~~~~~~ Finished Validation ~~~~~~~~")
+
+  def calc_embeddings(self):
+    query_embeddings, database_embeddings = OrderedDict(), OrderedDict()
+
+    for ind, data in enumerate(self.dataloader, 1):
+      if ind > self.config.max_val_batches:
+        break
+
+      im, im_type, match_id, im_id = data
+      entry = Entry(im_type, match_id, im_id)
+
+      inp = to_tensor(im).unsqueeze(0)
+      with torch.no_grad():
+        outp = self.model.predict_embedding(inp).cpu() # TODO: GPU?
+
+      if im_type == 'query':
+        query_embeddings[entry] = outp
+      elif im_type == 'database':
+        database_embeddings[entry] = outp
+
+    return query_embeddings, database_embeddings
 
   def calc_distance(self, query, database):
     ''' Returns distances, an 1-dim tensor for query to all database
