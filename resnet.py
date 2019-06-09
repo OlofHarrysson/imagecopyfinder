@@ -29,12 +29,8 @@ class DistanceNet(nn.Module):
       embeddings = self.feature_extractor(inputs)
       return embeddings
 
-  def calc_distance(self, query_emb, database_emb):
-    inputs = torch.cat((query_emb, database_emb), dim=1)
-    with torch.no_grad():
-      outputs = self.distance_measurer(inputs)
-
-    return outputs.cpu()
+  def calc_distance(self, query_emb, database):
+    return self.distance_measurer.calc_similarities(query_emb, database)
 
 class Resnet18(nn.Module):
   def __init__(self, config):
@@ -54,24 +50,77 @@ class Resnet18(nn.Module):
     x = self.fc2(x)
     return x
 
-# TODO: Make several distance metrics. One for ecluedian distance, one for cosine similarity, etc. Name it similarity measurer or something
 class DistanceMeasurer():
   def __init__(self, config):
-    d1 = nn.CosineSimilarity()
-    d2 = nn.PairwiseDistance(p=1)
-    self.distance_metrics = [d1, d2]
+    fn1 = CosineSimilarity()
+    fn2 = EuclidianDistance()
+    self.distance_metrics = [fn1, fn2]
 
-  def calc_similarities(self, query_emb, database_emb):
+  def calc_similarities(self, query_emb, database):
+    ''' Returns similarities, a dict with 1-dim tensors for query to all in database
+    '''
     similarities = {}
     for metric in self.distance_metrics:
-      similarity = self._calc_similaritiy(query_emb, database_emb, metric)
-      print(metric)
-      qwe
+      similarity = self._calc_similarity(query_emb, database, metric)
+      similarities[str(metric)] = similarity
 
-  def _calc_similarity(self, query_emb, database_emb, metric):
-    distances = torch.tensor([])
+    return similarities
+
+  def _calc_similarity(self, query_emb, database, metric):
+    similarities = []
     for db_entries, db_emb in database.items():
-      dd = metric(query, db_emb)
-      distances = torch.cat((distances, dd))
-      
-    return distances
+      similarity = metric(query_emb, db_emb)
+      similarities.append(torch.tensor(similarity))
+
+    return torch.stack(similarities)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def assert_range(func):
+  def wrapper(*args, **kwargs):
+    similarity = func(*args, **kwargs)
+
+    assert type(similarity) == float, f'Similarity needs to be a float but was of type {type(similarity)}'
+
+    min_val, max_val = 0, 1
+    is_ok = similarity >= min_val and similarity <= max_val
+    assert is_ok, f'Similarity needs to be in range {min_val} - {max_val}. Function {func} gave {similarity.item()} instead'
+
+    return similarity
+  return wrapper
+
+class SimilarityMetric:
+  def __call__(self, query_emb, db_emb):
+    raise NotImplementedError('Similarity metrics need to return a similarity in the range 0 - 1 where 1 is very similar')
+
+  def __str__(self):
+    return type(self).__name__
+
+class CosineSimilarity(SimilarityMetric):
+  def __init__(self):
+    self.func = nn.CosineSimilarity()
+
+  @assert_range
+  def __call__(self, query_emb, db_emb):
+    return self.func(query_emb, db_emb).item()
+
+class EuclidianDistance(SimilarityMetric):
+  def __init__(self):
+    self.func = nn.PairwiseDistance(p=1)
+
+  @assert_range
+  def __call__(self, query_emb, db_emb):
+    distance = self.func(query_emb, db_emb)
+    return 1 - F.tanh(distance).item()

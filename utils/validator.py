@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torchvision.transforms.functional import to_pil_image, to_tensor
 import dataclasses
 from dataclasses import dataclass
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 class Validator():
   def __init__(self, model, logger, config):
@@ -22,40 +22,30 @@ class Validator():
   def validate(self, step):
     print("~~~~~~~~ Started Validation ~~~~~~~~")
     self.model.eval()
-
     query_embeddings, database_embeddings = self.calc_embeddings()
 
     # Calculates number of corrects
-    best_matches, ranks = [], []
+    ranks = defaultdict(list)
     database_keys = list(database_embeddings.keys())
     is_match = lambda q, db: q.match_id == db.match_id
     for query_entry, q_emb in query_embeddings.items():
 
       # Query & database entry distances
-      # distances = self.calc_distance(q_emb, database_embeddings)
-      similarities = self.model.calc_distance(q_emb, database_embeddings)
-      qwe
+      similarity_dict = self.model.calc_distance(q_emb, database_embeddings)
 
-      # distances is a list or something.
+      for metric, similarities in similarity_dict.items():
 
-      # for distances, metric in distances_something.items():
-        # find topK and this other shit
-
-      # Finds best match & rank of the prediction
-      _, dist_sorted = distances.topk(distances.size(0), largest=True) # TODO: largest for cosine.
-      for rank_number, dist_ind in enumerate(dist_sorted, 1):
-        db_entry = database_keys[dist_ind]
-        
-        if rank_number == 1: # Best match
-          best_matches.append((query_entry.im_id, db_entry.im_id))
-
-        if is_match(query_entry, db_entry): # Rank
-          ranks.append(rank_number)
-          break
+        # Finds best match & rank of the prediction
+        _, similarities_sorted = similarities.topk(similarities.size(0))
+        for rank_number, sim_ind in enumerate(similarities_sorted, 1):
+          db_entry = database_keys[sim_ind]
+          
+          if is_match(query_entry, db_entry): # Rank
+            ranks[metric].append(rank_number)
+            break
 
     self.logger.log_rank(ranks, step)
     self.logger.log_accuracy(ranks, step)
-    # self.save_matches(best_matches)
     self.model.train()
     print("~~~~~~~~ Finished Validation ~~~~~~~~")
 
@@ -79,20 +69,6 @@ class Validator():
         database_embeddings[entry] = outp
 
     return query_embeddings, database_embeddings
-
-  def calc_distance(self, query, database):
-    ''' Returns distances, an 1-dim tensor for query to all database
-        Returns match_ids, a 1-dim list for database ind
-    '''
-    # dist = nn.PairwiseDistance(p=1)
-    dist = nn.CosineSimilarity()
-    distances = torch.tensor([])
-    for db_entries, db_emb in database.items():
-      # dd = self.model.calc_distance(query, db_emb).squeeze(dim=0)
-      dd = dist(query, db_emb)
-      distances = torch.cat((distances, dd))
-      
-    return distances
 
   def save_matches(self, im_id_matches):
     ''' Save best matches as a concatenated image '''
