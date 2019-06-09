@@ -25,15 +25,15 @@ class Validator():
     query_embeddings, database_embeddings = self.calc_embeddings()
 
     # Calculates number of corrects
-    ranks = defaultdict(list)
+    ranks_dict = defaultdict(list)
     database_keys = list(database_embeddings.keys())
     is_match = lambda q, db: q.match_id == db.match_id
     for query_entry, q_emb in query_embeddings.items():
 
-      # Query & database entry distances
-      similarity_dict = self.model.calc_distance(q_emb, database_embeddings)
+      # Query & database entry similarities
+      similarity_dict = self.model.similarities(q_emb, database_embeddings)
 
-      for metric, similarities in similarity_dict.items():
+      for metric_name, similarities in similarity_dict.items():
 
         # Finds best match & rank of the prediction
         _, similarities_sorted = similarities.topk(similarities.size(0))
@@ -41,11 +41,13 @@ class Validator():
           db_entry = database_keys[sim_ind]
           
           if is_match(query_entry, db_entry): # Rank
-            ranks[metric].append(rank_number)
+            ranks_dict[metric_name].append(rank_number)
             break
 
-    self.logger.log_rank(ranks, step)
-    self.logger.log_accuracy(ranks, step)
+    for metric_name, ranks in ranks_dict.items():
+      self.logger.log_rank(ranks, step, metric_name)
+      self.logger.log_accuracy(ranks, step, metric_name)
+
     self.model.train()
     print("~~~~~~~~ Finished Validation ~~~~~~~~")
 

@@ -42,7 +42,6 @@ def train(model, config):
   transformer = Transformer()
   margin = 1.0
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm)
-  loss_fn = torch.nn.BCELoss()
 
   # Data
   batch_size = config.batch_size
@@ -60,7 +59,8 @@ def train(model, config):
 
   optim_steps = 0
   val_freq = config.validation_freq
-  # Training loop starts here
+
+  # Training loop
   for epoch in pbar(range(1, n_epochs + 1)):
     for batch_i, data in enumerate(dataloader, 1):
       pbar.update(epoch, batch_i)
@@ -79,15 +79,10 @@ def train(model, config):
 
       inputs = torch.cat((original, transformed))
       outputs = model(inputs)
-      distance_output, anchors, positives, negatives = outputs
-      pos_distance, neg_distance = distance_output.chunk(2)
+      anchors, positives, negatives = outputs
       
-      pos_loss = loss_fn(pos_distance, torch.zeros_like(pos_distance))
-      neg_loss = loss_fn(neg_distance, torch.ones_like(neg_distance))
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-      # loss = pos_loss + neg_loss + triplet_loss
       loss = triplet_loss
-      # loss = pos_loss + neg_loss
 
       loss.backward()
       optimizer.step()
@@ -97,6 +92,7 @@ def train(model, config):
       logger.log_distance_accuracy(pos_distance, neg_distance, optim_steps)
       logger.log_loss(pos_loss, neg_loss, triplet_loss, loss, optim_steps)
       logger.log_lr(get_lr(optimizer), optim_steps)
+      
       # Frees up GPU memory
       del data; del outputs
 

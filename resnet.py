@@ -16,20 +16,14 @@ class DistanceNet(nn.Module):
     embeddings = self.feature_extractor(inputs)
     original_emb, transf_emb = embeddings.chunk(2)
 
-    anchors, positives, negatives = create_triplets(original_emb, transf_emb)
-    a_2_p = torch.cat((anchors, positives), dim=1) # Dist -> 0
-    a_2_n = torch.cat((anchors, negatives), dim=1) # Dist -> 1
-
-    distance_input = torch.cat((a_2_p, a_2_n))
-    distance_output = self.distance_measurer(distance_input)
-    return distance_output, anchors, positives, negatives
+    return create_triplets(original_emb, transf_emb)
 
   def predict_embedding(self, inputs):
     with torch.no_grad():
       embeddings = self.feature_extractor(inputs)
       return embeddings
 
-  def calc_distance(self, query_emb, database):
+  def similarities(self, query_emb, database):
     return self.distance_measurer.calc_similarities(query_emb, database)
 
 class Resnet18(nn.Module):
@@ -57,8 +51,7 @@ class DistanceMeasurer():
     self.distance_metrics = [fn1, fn2]
 
   def calc_similarities(self, query_emb, database):
-    ''' Returns similarities, a dict with 1-dim tensors for query to all in database
-    '''
+    ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''
     similarities = {}
     for metric in self.distance_metrics:
       similarity = self._calc_similarity(query_emb, database, metric)

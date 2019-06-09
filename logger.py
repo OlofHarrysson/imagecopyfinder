@@ -76,7 +76,7 @@ class Logger():
       )
     )
 
-  def log_accuracy(self, ranks, step):
+  def log_accuracy(self, ranks, step, name):
     n_ranks = len(ranks)
     top_x = lambda t_x: len([i for i in ranks if i <= t_x]) / n_ranks
     top_1, top_3, top_5 = top_x(1), top_x(3), top_x(5)
@@ -86,28 +86,28 @@ class Logger():
       Y=Y,
       X=[step],
       update='append',
-      win='Accuracy',
+      win='Accuracy'+name,
       opts=dict(
           xlabel='Steps',
           ylabel='Validation Accuracy',
-          title='Top-k Validation Accuracy',
+          title=f'Top-k Validation Accuracy {name}',
           ytickmin = 0,
           ytickmax = 1,
           legend=['Top1', 'Top3', 'Top5'],
       )
     )
 
-  def log_rank(self, ranks, step):
+  def log_rank(self, ranks, step, name):
     # TODO: Output some kind of mean for the distro?
 
     # Bins several values together when there are a lot of ranks
     self.viz.histogram(
       X=[ranks],
-      win='Rank',
+      win='Rank'+name,
       opts=dict(
           xlabel='Rank',
           ylabel='Number of Predictions',
-          title='~Validation Rank',
+          title=f'~Validation Rank {name}',
       )
     )
 

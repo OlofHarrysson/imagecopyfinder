@@ -61,7 +61,7 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    self.n_model_features = 3
+    self.n_model_features = 4
     self.max_val_batches = 10
 
 
@@ -72,7 +72,7 @@ class Colab(DefaultConfig):
     self.num_workers = 16
     # self.dataset = 'datasets/imagenet'
     self.dataset = 'datasets/places365/validation'
-    
+
     self.n_model_features = 512
 
     self.image_input_size = 300
