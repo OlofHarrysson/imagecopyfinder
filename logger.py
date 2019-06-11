@@ -58,24 +58,6 @@ class Logger():
       )
     )
 
-  def log_distance_accuracy(self, positives, negatives, step):
-    is_better = positives < negatives
-    accuracy = is_better.sum().item() / is_better.numel() # TODO: Div zero
-
-    self.viz.line(
-      Y=[accuracy],
-      X=[step],
-      update='append',
-      win='DistAccuracy',
-      opts=dict(
-          xlabel='Steps',
-          ylabel='Accuracy',
-          title='Distance Accuracy',
-          ytickmin = 0,
-          ytickmax = 1
-      )
-    )
-
   def log_accuracy(self, ranks, step, name):
     n_ranks = len(ranks)
     top_x = lambda t_x: len([i for i in ranks if i <= t_x]) / n_ranks
@@ -111,10 +93,10 @@ class Logger():
       )
     )
 
-  def log_loss(self, pos_loss, neg_loss, triplet_loss, loss, step):
-    Y = torch.Tensor([loss, triplet_loss, pos_loss, neg_loss]).numpy()
+  def log_loss(self, loss, step):
+    Y = torch.Tensor([loss]).numpy()
     self.viz.line(
-      Y=Y.reshape((1,4)),
+      Y=Y.reshape((1,1)),
       X=[step],
       update='append',
       win='TotalLoss',
@@ -122,7 +104,7 @@ class Logger():
           xlabel='Steps',
           ylabel='Loss',
           title='Training Loss',
-          legend=['Total', 'Triplet', 'Positive', 'Negative']
+          legend=['Total']
 
       )
     )

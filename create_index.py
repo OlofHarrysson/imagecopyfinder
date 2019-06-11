@@ -41,14 +41,29 @@ def copydays_format(dataset_root, query_dir, database_dir):
 
   return index
 
-def main():
-  # dataset_root = Path('datasets/copydays/sample')
+def copydays():
   dataset_root = Path('datasets/copydays')
   query_dir = dataset_root / 'strong'
   database_dir = dataset_root / 'original'
 
   index = copydays_format(dataset_root, query_dir, database_dir)
   index_path = str(dataset_root / 'index.json')
+  return index, index_path
+
+def copydays_crop():
+  dataset_root = Path('datasets/copydays_crop')
+  query_dir = dataset_root / 'fake'
+  database_dir = dataset_root / 'original'
+
+  index = copydays_format(dataset_root, query_dir, database_dir)
+  index_path = str(dataset_root / 'index.json')
+  return index, index_path
+
+
+def main():
+  # index, index_path = copydays()
+  index, index_path = copydays_crop()
+  
   with open(index_path, 'w') as outfile:
     json.dump(index, outfile, indent=2)
 

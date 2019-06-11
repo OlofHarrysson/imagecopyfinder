@@ -31,7 +31,7 @@ class TripletDataset(Dataset):
     
     im_types = ['.jpg', '.png']
     is_image = lambda path: path.suffix in im_types
-    
+
     if type(im_dirs) == str:
       im_dirs = [im_dirs]
 
@@ -88,7 +88,7 @@ class CopyDataset(Dataset):
 
 if __name__ == '__main__':
   import visdom, torch, random
-  from transform import Transformer
+  from transform import Transformer, CropTransformer
   from config.config_util import choose_config
   import imgaug as ia
 
@@ -101,7 +101,8 @@ if __name__ == '__main__':
   viz = visdom.Visdom(port='6006')
   clear_envs(viz)
 
-  transformer = Transformer()
+  # transformer = Transformer()
+  transformer = CropTransformer()
   config = choose_config('colab')
   dataset = TripletDataset('datasets/places365/validation', transformer, config)
 

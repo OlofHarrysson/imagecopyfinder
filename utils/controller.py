@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from triplet import create_triplets, create_doublets
 from logger import Logger
 from utils.validator import Validator
-from transform import Transformer
+from transform import Transformer, CropTransformer
 from pathlib import Path
 from resnet import DistanceNet
 
@@ -39,7 +39,8 @@ def train(model, config):
   optimizer, lr_scheduler = init_training(model, config)
   logger = Logger(config)
   validator = Validator(model, logger, config)
-  transformer = Transformer()
+  # transformer = Transformer()
+  transformer = CropTransformer()
   margin = 1.0
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm)
 
@@ -88,10 +89,11 @@ def train(model, config):
       optimizer.step()
       optim_steps += 1
 
+      # TODO: How to log training. Want to see how distance functions behaves on training set
+      
       logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
-      logger.log_distance_accuracy(pos_distance, neg_distance, optim_steps)
-      logger.log_loss(pos_loss, neg_loss, triplet_loss, loss, optim_steps)
-      logger.log_lr(get_lr(optimizer), optim_steps)
+      logger.log_loss(loss, optim_steps)
+      # logger.log_lr(get_lr(optimizer), optim_steps)
       
       # Frees up GPU memory
       del data; del outputs

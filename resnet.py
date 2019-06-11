@@ -116,4 +116,4 @@ class EuclidianDistance(SimilarityMetric):
   @assert_range
   def __call__(self, query_emb, db_emb):
     distance = self.func(query_emb, db_emb)
-    return 1 - F.tanh(distance).item()
+    return 1 - torch.tanh(distance).item()

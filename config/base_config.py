@@ -24,6 +24,8 @@ class DefaultConfig():
 
     self.dataset = 'datasets/cifar_bigger'
 
+    self.validation_dataset = 'datasets/copydays_crop'
+
     self.n_model_features = 10
 
     # Data input size
@@ -63,6 +65,7 @@ class Laptop(DefaultConfig):
     self.use_gpu = False
     self.n_model_features = 4
     self.max_val_batches = 10
+    # self.max_val_batches = 20
 
 
 class Colab(DefaultConfig):

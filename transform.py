@@ -5,6 +5,20 @@ import imgaug.augmenters as iaa
 # from imgaug import parameters as iap
 import numpy as np
 
+class CropTransformer():
+  def __init__(self):
+    minc, maxc = 0.05, 0.3
+    crop_percent = ([minc, maxc], [minc, maxc], [minc, maxc], [minc, maxc])
+    self.seq = iaa.Crop(percent=crop_percent, keep_size=False)
+
+  def __call__(self, im):
+    augmented_im = self.seq.augment_image(np.array(im))
+    return Image.fromarray(augmented_im)
+
+  def numpy_transform(self, im):
+    return self.seq.augment_image(np.array(im))
+
+
 class Transformer():
   def __init__(self):
     self.im_size = 100 # TODO: When do I actually want to do this? Also resize in the dataset function. I'd say do crop in the dropout function since they don't match that well
@@ -107,7 +121,6 @@ def segmentation():
 def crop():
   return iaa.OneOf([
     iaa.Crop(percent=([0.05, 0.1], [0.05, 0.1], [0.05, 0.1], [0.05, 0.1])),
-
   ])
 
 def uniform_size(im_size):
@@ -117,30 +130,10 @@ def uniform_size(im_size):
   ])
 
 if __name__ == '__main__':
-  import visdom, random
+  import random
   seed = random.randint(0, 10000)
   ia.seed(seed)
 
-  def clear_envs(viz):
-    [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
-
   transformer = Transformer()
   im = Image.open('datasets/sheepie.jpg')
-  print(im.size)
-  viz = visdom.Visdom(port='6006')
-  clear_envs(viz)
-
-  # t_im = transformer.numpy_transform(im)
-  # t_im = np.rollaxis(t_im, 2)
-
   transformer.grid([np.array(im)])
-
-
-  def transform_im(im):
-    t_im = transformer.numpy_transform(im)
-    return np.rollaxis(t_im, 2)
-
-  # t_ims = [transform_im(im) for _ in range(4)]
-  # t_im.show()
-  # viz.images(t_ims)
-  # time.sleep(1)
