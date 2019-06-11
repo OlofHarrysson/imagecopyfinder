@@ -121,3 +121,25 @@ class Logger():
           title='Learning rate',
       )
     )
+
+  def log_corrects(self, corrects, step):
+    metrics, accuracies = [], []
+    for key, val in corrects.items():
+      metrics.append(key)
+      accuracies.append(sum(val) / len(val))
+
+    Y = np.array(accuracies).reshape((1, -1))
+    self.viz.line(
+      Y=Y,
+      X=[step],
+      update='append',
+      win='Distance Accuracy',
+      opts=dict(
+          xlabel='Steps',
+          ylabel='Top-1 Accuracy',
+          title=f'Distance Accuracy',
+          ytickmin = 0,
+          ytickmax = 1,
+          legend=metrics,
+      )
+    )

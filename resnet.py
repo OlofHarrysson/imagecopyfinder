@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from triplet import create_triplets, create_doublets
+from collections import defaultdict
 
 class DistanceNet(nn.Module):
   def __init__(self, config):
@@ -16,7 +17,8 @@ class DistanceNet(nn.Module):
     embeddings = self.feature_extractor(inputs)
     original_emb, transf_emb = embeddings.chunk(2)
 
-    return create_triplets(original_emb, transf_emb)
+    return original_emb, transf_emb
+    # return create_triplets(original_emb, transf_emb)
 
   def predict_embedding(self, inputs):
     with torch.no_grad():
@@ -25,6 +27,10 @@ class DistanceNet(nn.Module):
 
   def similarities(self, query_emb, database):
     return self.distance_measurer.calc_similarities(query_emb, database)
+
+  def corrects(self, query_embs, database_embs):
+    return self.distance_measurer.corrects(query_embs, database_embs)
+
 
 class Resnet18(nn.Module):
   def __init__(self, config):
@@ -52,32 +58,32 @@ class DistanceMeasurer():
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''
+    database_embs = list(database.values())
+    database_embs = torch.stack(database_embs).squeeze()
+
     similarities = {}
     for metric in self.distance_metrics:
-      similarity = self._calc_similarity(query_emb, database, metric)
+      similarity = self._calc_similarity(query_emb, database_embs, metric)
       similarities[str(metric)] = similarity
 
     return similarities
 
-  def _calc_similarity(self, query_emb, database, metric):
-    similarities = []
-    for db_entries, db_emb in database.items():
-      similarity = metric(query_emb, db_emb)
-      similarities.append(torch.tensor(similarity))
-
-    return torch.stack(similarities)
+  def _calc_similarity(self, query_emb, database_embs, metric):
+    query_embs = query_emb.expand_as(database_embs)
+    return metric(query_embs, database_embs)
 
 
+  def corrects(self, query_embs, database_embs):
+    corrects = defaultdict(lambda: [])
 
+    for q_ind, query in enumerate(query_embs):
+      for metric in self.distance_metrics:
+        sim = self._calc_similarity(query, database_embs, metric)
 
+        _, max_ind = sim.max(0)
+        corrects[str(metric)].append((max_ind == q_ind).item())
 
-
-
-
-
-
-
-
+    return corrects
 
 
 
@@ -85,11 +91,12 @@ def assert_range(func):
   def wrapper(*args, **kwargs):
     similarity = func(*args, **kwargs)
 
-    assert type(similarity) == float, f'Similarity needs to be a float but was of type {type(similarity)}'
+    # assert type(similarity) == float, f'Similarity needs to be a float but was of type {type(similarity)}'
 
     min_val, max_val = 0, 1
-    is_ok = similarity >= min_val and similarity <= max_val
-    assert is_ok, f'Similarity needs to be in range {min_val} - {max_val}. Function {func} gave {similarity.item()} instead'
+    # is_ok = similarity >= min_val and similarity <= max_val
+    is_ok = similarity.ge(min_val).all() and similarity.le(max_val).all()
+    assert is_ok, f'Similarity needs to be in range {min_val} - {max_val}. Function {func} gave {similarity} instead'
 
     return similarity
   return wrapper
@@ -107,7 +114,8 @@ class CosineSimilarity(SimilarityMetric):
 
   @assert_range
   def __call__(self, query_emb, db_emb):
-    return self.func(query_emb, db_emb).item()
+    cos = self.func(query_emb, db_emb)
+    return (cos + 1) / 2 # range 0 - 1
 
 class EuclidianDistance(SimilarityMetric):
   def __init__(self):
@@ -116,4 +124,4 @@ class EuclidianDistance(SimilarityMetric):
   @assert_range
   def __call__(self, query_emb, db_emb):
     distance = self.func(query_emb, db_emb)
-    return 1 - torch.tanh(distance).item()
+    return 1 - torch.tanh(distance) # range 0 - 1

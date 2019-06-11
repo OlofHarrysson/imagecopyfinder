@@ -80,7 +80,8 @@ def train(model, config):
 
       inputs = torch.cat((original, transformed))
       outputs = model(inputs)
-      anchors, positives, negatives = outputs
+      original_emb, transf_emb = outputs
+      anchors, positives, negatives = create_triplets(original_emb, transf_emb)
       
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
       loss = triplet_loss
@@ -89,10 +90,11 @@ def train(model, config):
       optimizer.step()
       optim_steps += 1
 
-      # TODO: How to log training. Want to see how distance functions behaves on training set
-      
+      corrects = model.corrects(transf_emb, original_emb)
+
       logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_loss(loss, optim_steps)
+      logger.log_corrects(corrects, optim_steps)
       # logger.log_lr(get_lr(optimizer), optim_steps)
       
       # Frees up GPU memory

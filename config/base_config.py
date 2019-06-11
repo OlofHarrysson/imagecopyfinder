@@ -65,7 +65,8 @@ class Laptop(DefaultConfig):
     self.use_gpu = False
     self.n_model_features = 4
     self.max_val_batches = 10
-    # self.max_val_batches = 20
+    # self.max_val_batches = 30
+    self.batch_size = 3
 
 
 class Colab(DefaultConfig):
