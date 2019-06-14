@@ -35,7 +35,7 @@ class DefaultConfig():
 
     self.pretrained = True
 
-    self.distance_norm = 2
+    self.distance_norm = 1
 
     self.start_lr = 1e-3
     self.end_lr = 1e-4
@@ -44,6 +44,8 @@ class DefaultConfig():
     self.lr_step_frequency = 100
 
     self.validation_freq = 200
+
+    self.top_x = 3
 
 
 
@@ -78,10 +80,14 @@ class Colab(DefaultConfig):
     self.dataset = 'datasets/places365/validation'
 
     self.n_model_features = 512
+    self.top_x = int(self.n_model_features / 4)
 
     self.image_input_size = 300
     self.batch_size = 16
 
     self.pretrained = False
+
+    self.validation_freq = 60
+
 
 

@@ -13,7 +13,6 @@ from resnet import DistanceNet
 # TODO: Change distance norm 2->1? I want the system to match because there are a lot of features that are close, not fuck up because one feature is bad and dominates the others. Could even select the top% features that matchest best.
 # TODO: Could this be used as a pretraining system for triplet loss
 
-# TODO: Create a validation dataset. contains both real and adverserial examples, labeled so we can measure accuracy
 
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
 
@@ -41,8 +40,9 @@ def train(model, config):
   validator = Validator(model, logger, config)
   # transformer = Transformer()
   transformer = CropTransformer()
-  margin = 1.0
+  margin = 5
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm)
+  similarity_loss_fn = torch.nn.BCELoss()
 
   # Data
   batch_size = config.batch_size
@@ -83,8 +83,13 @@ def train(model, config):
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
       
-      triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-      loss = triplet_loss
+      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
+
+      # triplet_loss = triplet_loss_fn(anchors, positives, negatives)
+      positives = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      negatives = similarity_loss_fn(a_n, torch.zeros_like(a_n))
+      loss = positives + negatives
+      # loss = triplet_loss
 
       loss.backward()
       optimizer.step()
@@ -92,7 +97,8 @@ def train(model, config):
 
       corrects = model.corrects(transf_emb, original_emb)
 
-      logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
+      # if optim_steps % 50 == 0:
+      # logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_loss(loss, optim_steps)
       logger.log_corrects(corrects, optim_steps)
       # logger.log_lr(get_lr(optimizer), optim_steps)

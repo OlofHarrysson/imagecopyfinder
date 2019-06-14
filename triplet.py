@@ -31,7 +31,7 @@ def create_doublets(embeddings):
 
 
 def test():
-  b_size = 3
+  b_size = 16
   batch = range(1, b_size+1)
   batch2 = [b+.5 for b in batch]
 

@@ -14,7 +14,6 @@ class Logger():
     clear_envs(self.viz)
 
   def easy_or_hard(self, anchors, positives, negatives, margin, step):
-    # TODO: Change? Still relavant for the triplet loss
     dist = nn.PairwiseDistance(p=self.config.distance_norm)
     a_to_p = dist(anchors, positives)
     a_to_n = dist(anchors, negatives)
@@ -72,7 +71,7 @@ class Logger():
       opts=dict(
           xlabel='Steps',
           ylabel='Validation Accuracy',
-          title=f'Top-k Validation Accuracy {name}',
+          title=f'Val Accuracy {name}',
           ytickmin = 0,
           ytickmax = 1,
           legend=['Top1', 'Top3', 'Top5'],

@@ -10,7 +10,8 @@ class DistanceNet(nn.Module):
     super().__init__()
     self.device = 'cuda' if config.use_gpu else 'cpu'
     self.feature_extractor = Resnet18(config)
-    self.distance_measurer = DistanceMeasurer(config)
+    self.similarity_net = SimilarityNet(config)
+    self.distance_measurer = DistanceMeasurer(config, self.similarity_net)
 
   def forward(self, inputs):
     inputs = inputs.to(self.device)
@@ -21,6 +22,7 @@ class DistanceNet(nn.Module):
     # return create_triplets(original_emb, transf_emb)
 
   def predict_embedding(self, inputs):
+    inputs = inputs.to(self.device)
     with torch.no_grad():
       embeddings = self.feature_extractor(inputs)
       return embeddings
@@ -30,6 +32,13 @@ class DistanceNet(nn.Module):
 
   def corrects(self, query_embs, database_embs):
     return self.distance_measurer.corrects(query_embs, database_embs)
+
+  def cc_similarity_net(self, anchors, positives, negatives):
+    a_p = torch.cat((anchors, positives), dim=1)
+    a_n = torch.cat((anchors, negatives), dim=1)
+    a_p_out = self.similarity_net(a_p)
+    a_n_out = self.similarity_net(a_n)
+    return a_p_out, a_n_out
 
 
 class Resnet18(nn.Module):
@@ -41,7 +50,6 @@ class Resnet18(nn.Module):
     self.basenet.fc = nn.Linear(self.basenet.fc.in_features, n_features)
     self.fc1 = nn.Linear(n_features, n_features)
     self.fc2 = nn.Linear(n_features, n_features)
-
     # TODO: Readlines writelines snippet
     
   def forward(self, x):
@@ -50,11 +58,28 @@ class Resnet18(nn.Module):
     x = self.fc2(x)
     return x
 
-class DistanceMeasurer():
+class SimilarityNet(nn.Module):
   def __init__(self, config):
-    fn1 = CosineSimilarity()
-    fn2 = EuclidianDistance()
-    self.distance_metrics = [fn1, fn2]
+    super().__init__()
+    self.device = 'cuda' if config.use_gpu else 'cpu'
+    n_features = config.n_model_features
+    self.fc1 = nn.Linear(2 * n_features, n_features)
+    self.fc2 = nn.Linear(n_features, 1)
+
+  def forward(self, inputs):
+    inputs = inputs.to(self.device)
+    x = F.relu(self.fc1(inputs), inplace=True)
+    return torch.sigmoid(self.fc2(x))
+
+class DistanceMeasurer():
+  def __init__(self, config, sim_net):
+    self.distance_metrics = []
+    add_metric = lambda m: self.distance_metrics.append(m)
+    add_metric(CosineSimilarity())
+    add_metric(EuclidianDistance1Norm())
+    add_metric(EuclidianDistance2Norm())
+    add_metric(EuclidianDistanceTopX(config.top_x))
+    add_metric(SimNet(sim_net))
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''
@@ -91,10 +116,7 @@ def assert_range(func):
   def wrapper(*args, **kwargs):
     similarity = func(*args, **kwargs)
 
-    # assert type(similarity) == float, f'Similarity needs to be a float but was of type {type(similarity)}'
-
     min_val, max_val = 0, 1
-    # is_ok = similarity >= min_val and similarity <= max_val
     is_ok = similarity.ge(min_val).all() and similarity.le(max_val).all()
     assert is_ok, f'Similarity needs to be in range {min_val} - {max_val}. Function {func} gave {similarity} instead'
 
@@ -115,13 +137,54 @@ class CosineSimilarity(SimilarityMetric):
   @assert_range
   def __call__(self, query_emb, db_emb):
     cos = self.func(query_emb, db_emb)
-    return (cos + 1) / 2 # range 0 - 1
+    return (cos + 1) / 2
 
-class EuclidianDistance(SimilarityMetric):
+class EuclidianDistance1Norm(SimilarityMetric):
   def __init__(self):
     self.func = nn.PairwiseDistance(p=1)
 
   @assert_range
   def __call__(self, query_emb, db_emb):
     distance = self.func(query_emb, db_emb)
-    return 1 - torch.tanh(distance) # range 0 - 1
+    return 1 - torch.sigmoid(distance)
+
+class EuclidianDistance2Norm(SimilarityMetric):
+  def __init__(self):
+    self.func = nn.PairwiseDistance(p=2)
+
+  @assert_range
+  def __call__(self, query_emb, db_emb):
+    distance = self.func(query_emb, db_emb)
+    return 1 - torch.sigmoid(distance)
+
+
+class EuclidianDistanceTopX(SimilarityMetric):
+  def __init__(self, top_x):
+    self.top_x = top_x
+
+  @assert_range
+  def __call__(self, query_emb, db_emb):
+    distance = torch.abs(query_emb - db_emb)
+    best_distances, _ = distance.topk(self.top_x, dim=1, largest=False)
+    return 1 - torch.sigmoid(best_distances.sum(dim=1))
+
+
+class SimNet(SimilarityMetric):
+  def __init__(self, model):
+    self.model = model
+
+  @assert_range
+  def __call__(self, query_emb, db_emb):
+    with torch.no_grad():
+      embs = torch.cat((db_emb, query_emb), dim=1)
+      outs = self.model(embs).squeeze()
+      return outs
+
+
+
+
+
+
+
+
+

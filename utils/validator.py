@@ -20,7 +20,6 @@ class Validator():
     self.dataloader = DataLoader(self.dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
 
   def validate(self, step):
-    print("~~~~~~~~ Started Validation ~~~~~~~~")
     self.model.eval()
     query_embeddings, database_embeddings = self.calc_embeddings()
 
@@ -49,7 +48,6 @@ class Validator():
       self.logger.log_accuracy(ranks, step, metric_name)
 
     self.model.train()
-    print("~~~~~~~~ Finished Validation ~~~~~~~~")
 
   def calc_embeddings(self):
     query_embeddings, database_embeddings = OrderedDict(), OrderedDict()
