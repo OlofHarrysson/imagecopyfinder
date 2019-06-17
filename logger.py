@@ -60,9 +60,9 @@ class Logger():
   def log_accuracy(self, ranks, step, name):
     n_ranks = len(ranks)
     top_x = lambda t_x: len([i for i in ranks if i <= t_x]) / n_ranks
-    top_1, top_3, top_5 = top_x(1), top_x(3), top_x(5)
+    top_1, top_2, top_3, top_5 = top_x(1), top_x(2), top_x(3), top_x(5)
 
-    Y = np.array([top_1, top_3, top_5]).reshape((1, 3))
+    Y = np.array([top_1, top_2, top_3, top_5]).reshape((1, -1))
     self.viz.line(
       Y=Y,
       X=[step],
@@ -74,7 +74,7 @@ class Logger():
           title=f'Val Accuracy {name}',
           ytickmin = 0,
           ytickmax = 1,
-          legend=['Top1', 'Top3', 'Top5'],
+          legend=['Top1', 'Top2', 'Top3', 'Top5'],
       )
     )
 

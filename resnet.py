@@ -36,14 +36,8 @@ class DistanceNet(nn.Module):
   def cc_similarity_net(self, anchors, positives, negatives):
     a_p = torch.cat((anchors, positives), dim=1)
     a_n = torch.cat((anchors, negatives), dim=1)
-    # print(a_p)
-    # TODO: Anchor & positives are repeated. This is OK for triplet training but might cause overfitting in normal training.
-    # print(f'Positives:\n {a_p.detach().numpy()}')
-    # print(f'Negatives:\n {a_n.detach().numpy()}')
-
     a_p_out = self.similarity_net(a_p)
     a_n_out = self.similarity_net(a_n)
-    # print(f'Positives: {a_p_out}, Negatives:{a_n_out}')
     return a_p_out, a_n_out
 
 
@@ -54,16 +48,9 @@ class Resnet18(nn.Module):
     self.basenet = models.resnet18(pretrained=config.pretrained)
     # self.basenet = models.resnet34(pretrained=config.pretrained)
     self.basenet.fc = nn.Linear(self.basenet.fc.in_features, n_features)
-    self.fc1 = nn.Linear(n_features, n_features)
-    self.fc2 = nn.Linear(n_features, n_features)
-    # TODO: Readlines writelines snippet
     
   def forward(self, x):
     return self.basenet(x)
-    # x = F.relu(self.basenet(x), inplace=True)
-    # x = F.relu(self.fc1(x), inplace=True)
-    # x = self.fc2(x)
-    # return x
 
 class SimilarityNet(nn.Module):
   def __init__(self, config):
@@ -71,22 +58,26 @@ class SimilarityNet(nn.Module):
     self.device = 'cuda' if config.use_gpu else 'cpu'
     n_features = config.n_model_features
     self.fc1 = nn.Linear(2 * n_features, n_features)
-    self.fc2 = nn.Linear(n_features, 1)
+    self.fc2 = nn.Linear(2 * n_features, n_features)
+    self.fc3 = nn.Linear(2 * n_features, n_features)
+    self.end = nn.Linear(n_features, 1)
 
   def forward(self, inputs):
-    inputs = inputs.to(self.device)
-    x = torch.sigmoid(self.fc1(inputs)) # TODO: deleteted relu
-    return torch.sigmoid(self.fc2(x))
+    x = inputs.to(self.device)
+    x = F.leaky_relu(self.fc1(x))
+    x = F.leaky_relu(self.fc2(x))
+    x = F.leaky_relu(self.fc3(x))
+    return torch.sigmoid(self.end(x))
 
 class DistanceMeasurer():
   def __init__(self, config, sim_net):
     self.distance_metrics = []
     add_metric = lambda m: self.distance_metrics.append(m)
-    # add_metric(CosineSimilarity())
+    add_metric(CosineSimilarity())
     # add_metric(EuclidianDistance1Norm())
-    # add_metric(EuclidianDistance2Norm())
-    # add_metric(EuclidianDistanceTopX(config.top_x))
-    add_metric(SimNet(sim_net))
+    add_metric(EuclidianDistance2Norm())
+    add_metric(EuclidianDistanceTopX(config.top_x))
+    # add_metric(SimNet(sim_net))
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''

@@ -35,7 +35,7 @@ class DefaultConfig():
 
     self.pretrained = True
 
-    self.distance_norm = 1
+    self.distance_norm = 2
 
     self.start_lr = 1e-3
     self.end_lr = 1e-4
@@ -68,8 +68,8 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    # self.n_model_features = 1
-    self.n_model_features = 400
+    self.n_model_features = 3
+    # self.n_model_features = 400
     self.max_val_batches = 10
     # self.max_val_batches = 30
     self.batch_size = 2
@@ -77,8 +77,8 @@ class Laptop(DefaultConfig):
 
     self.sample = True
 
-    # self.dataset = 'datasets/cifar_50'
-    self.dataset = 'datasets/cifar_sample'
+    self.dataset = 'datasets/cifar_50'
+    # self.dataset = 'datasets/cifar_sample'
 
     self.seed = 9
 
@@ -96,9 +96,9 @@ class Colab(DefaultConfig):
     self.top_x = int(self.n_model_features / 4)
 
     self.image_input_size = 300
-    self.batch_size = 16
+    self.batch_size = 32
 
-    # self.pretrained = False
+    self.pretrained = False
 
     self.validation_freq = 60
 
