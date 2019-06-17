@@ -47,6 +47,9 @@ class DefaultConfig():
 
     self.top_x = 3
 
+    # Seed to create reproducable training results
+    self.seed = random.randint(0, 2**32 - 1)
+
 
 
   def get_parameters(self):
@@ -65,10 +68,20 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    self.n_model_features = 4
+    # self.n_model_features = 1
+    self.n_model_features = 400
     self.max_val_batches = 10
     # self.max_val_batches = 30
-    self.batch_size = 3
+    self.batch_size = 2
+    # self.batch_size = 6
+
+    self.sample = True
+
+    # self.dataset = 'datasets/cifar_50'
+    self.dataset = 'datasets/cifar_sample'
+
+    self.seed = 9
+
 
 
 class Colab(DefaultConfig):
@@ -85,7 +98,7 @@ class Colab(DefaultConfig):
     self.image_input_size = 300
     self.batch_size = 16
 
-    self.pretrained = False
+    # self.pretrained = False
 
     self.validation_freq = 60
 

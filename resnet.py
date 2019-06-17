@@ -36,8 +36,14 @@ class DistanceNet(nn.Module):
   def cc_similarity_net(self, anchors, positives, negatives):
     a_p = torch.cat((anchors, positives), dim=1)
     a_n = torch.cat((anchors, negatives), dim=1)
+    # print(a_p)
+    # TODO: Anchor & positives are repeated. This is OK for triplet training but might cause overfitting in normal training.
+    # print(f'Positives:\n {a_p.detach().numpy()}')
+    # print(f'Negatives:\n {a_n.detach().numpy()}')
+
     a_p_out = self.similarity_net(a_p)
     a_n_out = self.similarity_net(a_n)
+    # print(f'Positives: {a_p_out}, Negatives:{a_n_out}')
     return a_p_out, a_n_out
 
 
@@ -53,10 +59,11 @@ class Resnet18(nn.Module):
     # TODO: Readlines writelines snippet
     
   def forward(self, x):
-    x = F.relu(self.basenet(x), inplace=True)
-    x = F.relu(self.fc1(x), inplace=True)
-    x = self.fc2(x)
-    return x
+    return self.basenet(x)
+    # x = F.relu(self.basenet(x), inplace=True)
+    # x = F.relu(self.fc1(x), inplace=True)
+    # x = self.fc2(x)
+    # return x
 
 class SimilarityNet(nn.Module):
   def __init__(self, config):
@@ -68,17 +75,17 @@ class SimilarityNet(nn.Module):
 
   def forward(self, inputs):
     inputs = inputs.to(self.device)
-    x = F.relu(self.fc1(inputs), inplace=True)
+    x = torch.sigmoid(self.fc1(inputs)) # TODO: deleteted relu
     return torch.sigmoid(self.fc2(x))
 
 class DistanceMeasurer():
   def __init__(self, config, sim_net):
     self.distance_metrics = []
     add_metric = lambda m: self.distance_metrics.append(m)
-    add_metric(CosineSimilarity())
-    add_metric(EuclidianDistance1Norm())
-    add_metric(EuclidianDistance2Norm())
-    add_metric(EuclidianDistanceTopX(config.top_x))
+    # add_metric(CosineSimilarity())
+    # add_metric(EuclidianDistance1Norm())
+    # add_metric(EuclidianDistance2Norm())
+    # add_metric(EuclidianDistanceTopX(config.top_x))
     add_metric(SimNet(sim_net))
 
   def calc_similarities(self, query_emb, database):
@@ -94,7 +101,9 @@ class DistanceMeasurer():
     return similarities
 
   def _calc_similarity(self, query_emb, database_embs, metric):
-    query_embs = query_emb.expand_as(database_embs)
+    # TODO: Use expand_as if no training is to be done. Saves memory
+    # query_embs = query_emb.expand_as(database_embs)
+    query_embs = query_emb.repeat((database_embs.size(0), 1))
     return metric(query_embs, database_embs)
 
 
@@ -107,6 +116,11 @@ class DistanceMeasurer():
 
         _, max_ind = sim.max(0)
         corrects[str(metric)].append((max_ind == q_ind).item())
+        # print(sim)
+        # print(f'QUERY: {query}')
+        # print(f'Databse: {database_embs}')
+        # qwe
+        # print(f'Min: {sim.min()}, Max: {sim.max()}, Mean:{sim.mean()}')
 
     return corrects
 
@@ -155,6 +169,9 @@ class EuclidianDistance2Norm(SimilarityMetric):
   @assert_range
   def __call__(self, query_emb, db_emb):
     distance = self.func(query_emb, db_emb)
+    # torch.sigmoid(distance) [0.5 - 1] > [0 - 1]
+    # TODO: Remap function.
+    # qwe
     return 1 - torch.sigmoid(distance)
 
 
@@ -175,10 +192,19 @@ class SimNet(SimilarityMetric):
 
   @assert_range
   def __call__(self, query_emb, db_emb):
+    embs = torch.cat((db_emb, query_emb), dim=1)
+    # print(f'QUERY: {query_emb}')
+    # print(f'Database: {db_emb}')
+    # print(embs)
+    # qwe
+    self.model.eval()
     with torch.no_grad():
-      embs = torch.cat((db_emb, query_emb), dim=1)
       outs = self.model(embs).squeeze()
-      return outs
+      # print(outs)
+      # asd
+    self.model.train()
+    return outs
+
 
 
 

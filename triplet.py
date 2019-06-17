@@ -9,10 +9,14 @@ def create_triplets(originals, transformed):
 
   anchors = originals.repeat_interleave(n_repeat, dim=0)
   positives = transformed.repeat_interleave(n_repeat, dim=0)
-  negatives = originals.repeat(n_repeat + 1, 1)
+  negatives = transformed.repeat(n_repeat + 1, 1)
+  # negatives = originals.repeat(n_repeat + 1, 1)
 
   mask = [i for i in range(batch_size**2) if i%(batch_size+1) != 0]
   negatives = negatives[mask]
+
+  # TODO: Negatives are not based on transform. Error?
+  # asdas
 
   return anchors, positives, negatives
 
@@ -31,7 +35,7 @@ def create_doublets(embeddings):
 
 
 def test():
-  b_size = 16
+  b_size = 3
   batch = range(1, b_size+1)
   batch2 = [b+.5 for b in batch]
 
@@ -45,7 +49,8 @@ def test():
   # print(p)
 
   len_b = len(batch)
-  n = torch.tensor(batch)
+  # n = torch.tensor(batch) # For doing originals -> N
+  n = torch.tensor(batch2) # For doing transformed -> N
   n = n.repeat(len_b)
 
   mask = [i for i in range(len_b**2) if i%(len_b+1) != 0]

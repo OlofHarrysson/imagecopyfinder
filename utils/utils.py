@@ -1,4 +1,14 @@
 import progressbar as pbar
+import random, torch
+import numpy as np
+
+def seed_program(seed=0):
+  ''' Seed for reproducability '''
+  random.seed(seed)
+  np.random.seed(seed)
+  torch.manual_seed(seed)
+  torch.cuda.manual_seed_all(seed)
+  # torch.backends.cudnn.deterministic = True # You can add this
 
 class ProgressbarWrapper():
   def __init__(self, n_epochs, n_batches):

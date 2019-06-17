@@ -27,7 +27,8 @@ def init_training(model, config):
 
   # Optimizer & Scheduler
   # TODO CyclicLR
-  optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=config.start_lr)
+  # optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=config.start_lr)
+  optimizer = torch.optim.Adam(model.similarity_net.parameters(), lr=config.start_lr)
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
 
   return optimizer, scheduler
@@ -43,6 +44,7 @@ def train(model, config):
   margin = 5
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm)
   similarity_loss_fn = torch.nn.BCELoss()
+  # similarity_loss_fn = torch.nn.MSELoss()
 
   # Data
   batch_size = config.batch_size
@@ -67,8 +69,8 @@ def train(model, config):
       pbar.update(epoch, batch_i)
 
       # Validation
-      if optim_steps % val_freq == 0:
-        validator.validate(optim_steps)
+      # if optim_steps % val_freq == 0:
+      #   validator.validate(optim_steps)
 
       # Decrease learning rate
       if optim_steps % config.lr_step_frequency == 0:
@@ -82,20 +84,33 @@ def train(model, config):
       outputs = model(inputs)
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
+      # print(f'Anchors: {anchors}, Pos: {positives}, Neg: {negatives}')
       
       a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
-
+      # print(f'Positives: {a_p.mean()}, Negatives: {a_n.mean()}')
+      # print(f'Positives: {a_p}, Negatives: {a_n}')
+# 
       # triplet_loss = triplet_loss_fn(anchors, positives, negatives)
       positives = similarity_loss_fn(a_p, torch.ones_like(a_p))
       negatives = similarity_loss_fn(a_n, torch.zeros_like(a_n))
+
+      # print(f'Positive loss: {positives}, Negative: {negatives}')
+      
+      # positives = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      # negatives = similarity_loss_fn(a_n, torch.ones_like(a_n))
       loss = positives + negatives
+      # loss = negatives
       # loss = triplet_loss
 
+      corrects = model.corrects(transf_emb, original_emb)
       loss.backward()
       optimizer.step()
       optim_steps += 1
 
-      corrects = model.corrects(transf_emb, original_emb)
+      # print(original_emb, anchors)
+      # qweqwe
+      # TODO: it seems like i cant overfit. a_p, a_n are approaching good values but corrects doesn't. Why?
+      # asdasd
 
       # if optim_steps % 50 == 0:
       # logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)

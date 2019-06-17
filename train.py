@@ -2,6 +2,7 @@ import argparse
 from utils.controller import train
 from config.config_util import choose_config
 from resnet import Resnet18, DistanceNet
+from utils.utils import seed_program
 
 def parse_args():
   p = argparse.ArgumentParser()
@@ -14,6 +15,7 @@ def parse_args():
 
 def main(config_str):
   config = choose_config(config_str)
+  seed_program()
 
   # Create model
   # feature_extractor = Resnet18(config)

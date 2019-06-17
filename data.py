@@ -103,6 +103,7 @@ if __name__ == '__main__':
 
   # transformer = Transformer()
   transformer = CropTransformer()
+  # config = choose_config('laptop')
   config = choose_config('colab')
   dataset = TripletDataset('datasets/places365/validation', transformer, config)
 
