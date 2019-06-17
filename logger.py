@@ -2,6 +2,7 @@ import visdom
 import torch
 import torch.nn as nn
 import numpy as np
+from utils.utils import EMAverage
 
 def clear_envs(viz):
   [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
@@ -12,6 +13,13 @@ class Logger():
     self.config = config
     self.viz = visdom.Visdom(port='6006')
     clear_envs(self.viz)
+
+    self.corrects_average = None
+
+  def init_corrects_average(self, corrects):
+    self.corrects_average = {}
+    for key in corrects.keys():
+      self.corrects_average[key] = EMAverage(30)
 
   def easy_or_hard(self, anchors, positives, negatives, margin, step):
     dist = nn.PairwiseDistance(p=self.config.distance_norm)
@@ -108,24 +116,18 @@ class Logger():
       )
     )
 
-  def log_lr(self, lr, step):
-    self.viz.line(
-      Y=[lr],
-      X=[step],
-      update='append',
-      win='learning_rate',
-      opts=dict(
-          xlabel='Steps',
-          ylabel='Accuracy',
-          title='Learning rate',
-      )
-    )
-
   def log_corrects(self, corrects, step):
+    if self.corrects_average == None:
+      self.init_corrects_average(corrects)
+
+
     metrics, accuracies = [], []
     for key, val in corrects.items():
       metrics.append(key)
-      accuracies.append(sum(val) / len(val))
+      avg_tracker = self.corrects_average[key]
+      acc = avg_tracker.update(sum(val) / len(val))
+      # accuracies.append(sum(val) / len(val))
+      accuracies.append(acc)
 
     Y = np.array(accuracies).reshape((1, -1))
     self.viz.line(

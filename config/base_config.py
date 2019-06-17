@@ -72,8 +72,8 @@ class Laptop(DefaultConfig):
     # self.n_model_features = 400
     self.max_val_batches = 10
     # self.max_val_batches = 30
-    self.batch_size = 2
-    # self.batch_size = 6
+    # self.batch_size = 2
+    self.batch_size = 6
 
     self.sample = True
 
@@ -87,12 +87,12 @@ class Laptop(DefaultConfig):
 class Colab(DefaultConfig):
   def __init__(self, config_str):
     super().__init__(config_str)
-    self.max_val_batches = 100
     self.num_workers = 16
     # self.dataset = 'datasets/imagenet'
     self.dataset = 'datasets/places365/validation'
 
-    self.n_model_features = 512
+    # self.n_model_features = 512
+    self.n_model_features = 2048
     self.top_x = int(self.n_model_features / 4)
 
     self.image_input_size = 300

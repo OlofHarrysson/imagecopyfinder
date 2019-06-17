@@ -19,7 +19,6 @@ class DistanceNet(nn.Module):
     original_emb, transf_emb = embeddings.chunk(2)
 
     return original_emb, transf_emb
-    # return create_triplets(original_emb, transf_emb)
 
   def predict_embedding(self, inputs):
     inputs = inputs.to(self.device)
@@ -58,8 +57,8 @@ class SimilarityNet(nn.Module):
     self.device = 'cuda' if config.use_gpu else 'cpu'
     n_features = config.n_model_features
     self.fc1 = nn.Linear(2 * n_features, n_features)
-    self.fc2 = nn.Linear(2 * n_features, n_features)
-    self.fc3 = nn.Linear(2 * n_features, n_features)
+    self.fc2 = nn.Linear(n_features, n_features)
+    self.fc3 = nn.Linear(n_features, n_features)
     self.end = nn.Linear(n_features, 1)
 
   def forward(self, inputs):
@@ -77,7 +76,7 @@ class DistanceMeasurer():
     # add_metric(EuclidianDistance1Norm())
     add_metric(EuclidianDistance2Norm())
     add_metric(EuclidianDistanceTopX(config.top_x))
-    # add_metric(SimNet(sim_net))
+    add_metric(SimNet(sim_net))
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''
@@ -107,11 +106,6 @@ class DistanceMeasurer():
 
         _, max_ind = sim.max(0)
         corrects[str(metric)].append((max_ind == q_ind).item())
-        # print(sim)
-        # print(f'QUERY: {query}')
-        # print(f'Databse: {database_embs}')
-        # qwe
-        # print(f'Min: {sim.min()}, Max: {sim.max()}, Mean:{sim.mean()}')
 
     return corrects
 
@@ -160,9 +154,7 @@ class EuclidianDistance2Norm(SimilarityMetric):
   @assert_range
   def __call__(self, query_emb, db_emb):
     distance = self.func(query_emb, db_emb)
-    # torch.sigmoid(distance) [0.5 - 1] > [0 - 1]
-    # TODO: Remap function.
-    # qwe
+    # TODO: Remap function. [0.5 - 1] > [0 - 1]
     return 1 - torch.sigmoid(distance)
 
 
@@ -184,15 +176,9 @@ class SimNet(SimilarityMetric):
   @assert_range
   def __call__(self, query_emb, db_emb):
     embs = torch.cat((db_emb, query_emb), dim=1)
-    # print(f'QUERY: {query_emb}')
-    # print(f'Database: {db_emb}')
-    # print(embs)
-    # qwe
     self.model.eval()
     with torch.no_grad():
       outs = self.model(embs).squeeze()
-      # print(outs)
-      # asd
     self.model.train()
     return outs
 

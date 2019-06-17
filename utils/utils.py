@@ -1,6 +1,8 @@
 import progressbar as pbar
 import random, torch
 import numpy as np
+from collections import deque
+import pandas as pd
 
 def seed_program(seed=0):
   ''' Seed for reproducability '''
@@ -38,3 +40,14 @@ class ProgressbarWrapper():
   def update(self, epoch, batch):
     self.text.update_mapping(epoch=epoch, batch=batch)
     self.bar.update()
+
+
+class EMAverage(object):
+  ''' Smooths the curve with Exponential Moving Average '''
+  def __init__(self, time_steps):
+    self.vals = deque([], time_steps)
+
+  def update(self, val):
+    self.vals.append(val)
+    df = pd.Series(self.vals)
+    return df.ewm(com=0.5).mean().mean()

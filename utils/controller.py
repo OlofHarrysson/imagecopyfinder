@@ -40,7 +40,7 @@ def train(model, config):
   validator = Validator(model, logger, config)
   # transformer = Transformer()
   transformer = CropTransformer()
-  margin = 5
+  margin = 1
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
   similarity_loss_fn = torch.nn.BCELoss()
   # similarity_loss_fn = torch.nn.MSELoss()
@@ -83,21 +83,16 @@ def train(model, config):
       outputs = model(inputs)
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
-      # print(f'Anchors: {anchors}, Pos: {positives}, Neg: {negatives}')
       
-      # a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
-      # print(f'Positives: {a_p.mean()}, Negatives: {a_n.mean()}')
-      # print(f'Positives: {a_p}, Negatives: {a_n}')
+      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
 # 
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-      # positives = similarity_loss_fn(a_p, torch.ones_like(a_p))
-      # negatives = similarity_loss_fn(a_n, torch.zeros_like(a_n))
-      # print(f'Positive loss: {positives}, Negative: {negatives}')
+      positives = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      negatives = similarity_loss_fn(a_n, torch.zeros_like(a_n))
       
+      # loss = triplet_loss
       # loss = positives + negatives
-      # loss = negatives
-      loss = triplet_loss
-
+      loss = triplet_loss + positives + negatives
 
       corrects = model.corrects(transf_emb, original_emb)
       loss.backward()
@@ -108,7 +103,6 @@ def train(model, config):
       logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_loss(loss, optim_steps)
       logger.log_corrects(corrects, optim_steps)
-      # logger.log_lr(get_lr(optimizer), optim_steps)
       
       # Frees up GPU memory
       del data; del outputs
