@@ -65,6 +65,50 @@ class Logger():
       )
     )
 
+  def cosine_ez_hard(self, anchors, positives, negatives, margin, step):
+    dist = nn.CosineSimilarity()
+    a_to_p = dist(anchors, positives)
+    a_to_n = dist(anchors, negatives)
+
+    easy = a_to_p > a_to_n + margin
+    hard = a_to_p < a_to_n
+    semi_hard = torch.ones_like(easy) - (easy + hard)
+
+    n_comp = easy.size(0)
+    ee = easy.sum(dtype=torch.float32) / n_comp
+    hh = hard.sum(dtype=torch.float32) / n_comp
+    sh = semi_hard.sum(dtype=torch.float32) / n_comp
+
+    Y = torch.Tensor([ee, ee+sh, ee+sh+hh]).numpy()
+    self.viz.line(
+      Y=Y.reshape((1, 3)),
+      X=[step],
+      update='append',
+      win='TripletDifficulty',
+      opts=dict(
+          fillarea=True,
+          xlabel='Steps',
+          ylabel='Percentage',
+          title='Example Difficulty',
+          stackgroup='one',
+          legend=['Easy', 'Semi', 'Hard']
+      )
+    )
+
+    n_not_easy = hard.sum() + semi_hard.sum()
+    self.viz.line(
+      Y=[n_not_easy.item()],
+      X=[step],
+      update='append',
+      win='Examples_loss',
+      opts=dict(
+          fillarea=True,
+          xlabel='Steps',
+          ylabel='Number of Examples',
+          title='#Examples with Loss',
+      )
+    )
+
   def log_accuracy(self, ranks, step, name):
     n_ranks = len(ranks)
     top_x = lambda t_x: len([i for i in ranks if i <= t_x]) / n_ranks
@@ -78,7 +122,7 @@ class Logger():
       win='Accuracy'+name,
       opts=dict(
           xlabel='Steps',
-          ylabel='Validation Accuracy',
+          ylabel='Accuracy',
           title=f'Val Accuracy {name}',
           ytickmin = 0,
           ytickmax = 1,
@@ -120,13 +164,11 @@ class Logger():
     if self.corrects_average == None:
       self.init_corrects_average(corrects)
 
-
     metrics, accuracies = [], []
     for key, val in corrects.items():
       metrics.append(key)
       avg_tracker = self.corrects_average[key]
       acc = avg_tracker.update(sum(val) / len(val))
-      # accuracies.append(sum(val) / len(val))
       accuracies.append(acc)
 
     Y = np.array(accuracies).reshape((1, -1))

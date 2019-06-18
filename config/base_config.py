@@ -68,8 +68,8 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    self.n_model_features = 3
-    # self.n_model_features = 400
+    # self.n_model_features = 3
+    self.n_model_features = 400
     self.max_val_batches = 10
     # self.max_val_batches = 30
     # self.batch_size = 2

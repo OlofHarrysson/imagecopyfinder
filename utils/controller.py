@@ -16,6 +16,9 @@ from resnet import DistanceNet
 
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
 
+# TODO: Now the abchor+positive is the same all the time. What if we expand the number of fakes for more combinatinons?
+
+
 
 def clear_output_dir():
   [p.unlink() for p in Path('output').iterdir()]
@@ -27,7 +30,8 @@ def init_training(model, config):
 
   # Optimizer & Scheduler
   # TODO CyclicLR
-  optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=config.start_lr)
+  # optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=config.start_lr)
+  optimizer = torch.optim.Adam(model.parameters(), lr=config.start_lr)
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
 
   return optimizer, scheduler
@@ -42,8 +46,8 @@ def train(model, config):
   transformer = CropTransformer()
   margin = 1
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
+  cos_loss_fn = torch.nn.CosineEmbeddingLoss()
   similarity_loss_fn = torch.nn.BCELoss()
-  # similarity_loss_fn = torch.nn.MSELoss()
 
   # Data
   batch_size = config.batch_size
@@ -83,24 +87,30 @@ def train(model, config):
       outputs = model(inputs)
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
-      
-      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
-# 
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-      positives = similarity_loss_fn(a_p, torch.ones_like(a_p))
-      negatives = similarity_loss_fn(a_n, torch.zeros_like(a_n))
-      
-      # loss = triplet_loss
-      # loss = positives + negatives
-      loss = triplet_loss + positives + negatives
+# 
+      # Direct net loss
+      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
+      net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
+      net_loss = net_match_loss + net_not_match_loss
 
-      corrects = model.corrects(transf_emb, original_emb)
+      # Cosine similarity loss
+      y_size = anchors.size(0)
+      y = torch.ones(y_size).to(model.device)
+      cos_match_loss = cos_loss_fn(anchors, positives, y)
+      cos_not_match_loss = cos_loss_fn(anchors, negatives, -1 * y)
+      cos_loss = cos_match_loss + cos_not_match_loss
+
+      loss = triplet_loss + cos_loss + net_loss
       loss.backward()
       optimizer.step()
       optim_steps += 1
 
+      corrects = model.corrects(transf_emb, original_emb)
       # if optim_steps % 50 == 0:
       logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
+      # logger.cosine_ez_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_loss(loss, optim_steps)
       logger.log_corrects(corrects, optim_steps)
       
