@@ -16,12 +16,10 @@ from resnet import DistanceNet
 
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
 
-# TODO: Now the abchor+positive is the same all the time. What if we expand the number of fakes for more combinatinons?
+# TODO: Now the anchor+positive is the same all the time. What if we expand the number of fakes for more combinations?
 
 # TODO: 
-# make loss percentage view
 # start from pretrained embeddings. Add a few extra layers and only train them.
-# Check exactly how good pretrained are.
 
 
 def clear_output_dir():

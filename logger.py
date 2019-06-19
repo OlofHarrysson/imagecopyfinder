@@ -15,11 +15,17 @@ class Logger():
     clear_envs(self.viz)
 
     self.corrects_average = None
+    self.loss_percent_average = None
 
   def init_corrects_average(self, corrects):
     self.corrects_average = {}
     for key in corrects.keys():
       self.corrects_average[key] = EMAverage(30)
+
+  def init_loss_percent_average(self, loss_dict):
+    self.loss_percent_average = {}
+    for key in loss_dict.keys():
+      self.loss_percent_average[key] = EMAverage(30)
 
   def easy_or_hard(self, anchors, positives, negatives, margin, step):
     dist = nn.PairwiseDistance(p=self.config.distance_norm)
@@ -117,10 +123,15 @@ class Logger():
     )
 
   def log_loss_percent(self, loss_dict, step):
+    if self.loss_percent_average == None:
+      self.init_loss_percent_average(loss_dict)
+
     legend, losses = [], []
     for name, loss in loss_dict.items():
       legend.append(name)
-      losses.append(loss.item())
+      avg_tracker = self.loss_percent_average[name]
+      val = avg_tracker.update(loss.item())
+      losses.append(val)
 
     tot_loss = sum(losses)
     temp_loss = 0

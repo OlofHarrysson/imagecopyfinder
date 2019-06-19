@@ -93,12 +93,12 @@ class Colab(DefaultConfig):
 
     # self.n_model_features = 512
     self.n_model_features = 2048
-    self.top_x = int(self.n_model_features / 4)
+    self.top_x = int(self.n_model_features * 0.9)
 
     self.image_input_size = 300
     self.batch_size = 32
 
-    self.pretrained = False
+    # self.pretrained = False
 
     self.validation_freq = 60
 
