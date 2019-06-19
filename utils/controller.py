@@ -18,6 +18,10 @@ from resnet import DistanceNet
 
 # TODO: Now the abchor+positive is the same all the time. What if we expand the number of fakes for more combinatinons?
 
+# TODO: 
+# make loss percentage view
+# start from pretrained embeddings. Add a few extra layers and only train them.
+# Check exactly how good pretrained are.
 
 
 def clear_output_dir():
@@ -102,7 +106,8 @@ def train(model, config):
       cos_not_match_loss = cos_loss_fn(anchors, negatives, -1 * y)
       cos_loss = cos_match_loss + cos_not_match_loss
 
-      loss = triplet_loss + cos_loss + net_loss
+      loss_dict = dict(triplet=triplet_loss, cos=cos_loss, net=net_loss)
+      loss = sum(loss_dict.values())
       loss.backward()
       optimizer.step()
       optim_steps += 1
@@ -110,8 +115,8 @@ def train(model, config):
       corrects = model.corrects(transf_emb, original_emb)
       # if optim_steps % 50 == 0:
       logger.easy_or_hard(anchors, positives, negatives, margin, optim_steps)
-      # logger.cosine_ez_hard(anchors, positives, negatives, margin, optim_steps)
       logger.log_loss(loss, optim_steps)
+      logger.log_loss_percent(loss_dict, optim_steps)
       logger.log_corrects(corrects, optim_steps)
       
       # Frees up GPU memory

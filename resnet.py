@@ -76,7 +76,7 @@ class DistanceMeasurer():
     # add_metric(EuclidianDistance1Norm())
     add_metric(EuclidianDistance2Norm())
     add_metric(EuclidianDistanceTopX(config.top_x))
-    add_metric(SimNet(sim_net))1
+    add_metric(SimNet(sim_net))
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''
