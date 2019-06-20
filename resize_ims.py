@@ -12,10 +12,11 @@ def main(im_dir):
     im.save(save_path)
 
 if __name__ == '__main__':
-  im_dir = Path('datasets/copydays/original_src')
+  # im_dir = Path('datasets/copydays/original_src')
   # im_dir = Path('datasets/copydays/sample/original_src')
+  im_dir = Path('datasets/places365/validation_val/orignal_src')
   main(im_dir)
   # im_dir = Path('datasets/copydays/sample/strong_src')
-  im_dir = Path('datasets/copydays/strong_src')
-  main(im_dir)
+  # im_dir = Path('datasets/copydays/strong_src')
+  # main(im_dir)
   

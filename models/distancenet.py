@@ -4,12 +4,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from triplet import create_triplets, create_doublets
 from collections import defaultdict
+from .resnet import resnet18
+from .resnet import BasicBlock
 
 class DistanceNet(nn.Module):
   def __init__(self, config):
     super().__init__()
     self.device = 'cuda' if config.use_gpu else 'cpu'
-    self.feature_extractor = Resnet18(config)
+    self.feature_extractor = FeatureExtractor(config)
     self.similarity_net = SimilarityNet(config)
     self.distance_measurer = DistanceMeasurer(config, self.similarity_net)
 
@@ -39,17 +41,45 @@ class DistanceNet(nn.Module):
     a_n_out = self.similarity_net(a_n)
     return a_p_out, a_n_out
 
-
-class Resnet18(nn.Module):
+class FeatureExtractor(nn.Module):
   def __init__(self, config):
     super().__init__()
+    self.basenet = resnet18(pretrained=config.pretrained)
+    # for param in self.basenet.parameters():
+    #   param.requires_grad = False
+
+    n_filters = self.basenet.fc.in_features
+    blocks = [BasicBlock(n_filters, n_filters) for _ in range(2)]
+    self.blocks = nn.Sequential(*blocks)
+
+    self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
     n_features = config.n_model_features
-    self.basenet = models.resnet18(pretrained=config.pretrained)
-    # self.basenet = models.resnet34(pretrained=config.pretrained)
-    self.basenet.fc = nn.Linear(self.basenet.fc.in_features, n_features)
-    
+    self.fc = nn.Linear(n_filters, n_features)
+
+
   def forward(self, x):
-    return self.basenet(x)
+    x = self.basenet(x)
+    # return x
+    # x = self.blocks(x)
+    x = self.avgpool(x)
+    x = x.reshape(x.size(0), -1)
+    x = self.fc(x)
+    return x
+
+  def get_params(self):
+    return 
+
+
+# class Resnet18(nn.Module):
+#   def __init__(self, config):
+#     super().__init__()
+#     n_features = config.n_model_features
+#     self.basenet = models.resnet18(pretrained=config.pretrained)
+#     # self.basenet = models.resnet34(pretrained=config.pretrained)
+#     self.basenet.fc = nn.Linear(self.basenet.fc.in_features, n_features)
+    
+#   def forward(self, x):
+#     return self.basenet(x)
 
 class SimilarityNet(nn.Module):
   def __init__(self, config):
@@ -75,8 +105,8 @@ class DistanceMeasurer():
     add_metric(CosineSimilarity())
     # add_metric(EuclidianDistance1Norm())
     add_metric(EuclidianDistance2Norm())
-    add_metric(EuclidianDistanceTopX(config.top_x))
-    add_metric(SimNet(sim_net))
+    # add_metric(EuclidianDistanceTopX(config.top_x))
+    # add_metric(SimNet(sim_net))
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''

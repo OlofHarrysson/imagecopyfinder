@@ -7,7 +7,6 @@ from logger import Logger
 from utils.validator import Validator
 from transform import Transformer, CropTransformer
 from pathlib import Path
-from resnet import DistanceNet
 
 # TODO: I can increase the augmentation depending on how many easy/hard there are. Possibly also increase margin?
 # TODO: Change distance norm 2->1? I want the system to match because there are a lot of features that are close, not fuck up because one feature is bad and dominates the others. Could even select the top% features that matchest best.
@@ -18,9 +17,9 @@ from resnet import DistanceNet
 
 # TODO: Now the anchor+positive is the same all the time. What if we expand the number of fakes for more combinations?
 
-# TODO: 
-# start from pretrained embeddings. Add a few extra layers and only train them.
 
+# TODO:
+# More data
 
 def clear_output_dir():
   [p.unlink() for p in Path('output').iterdir()]
@@ -32,8 +31,8 @@ def init_training(model, config):
 
   # Optimizer & Scheduler
   # TODO CyclicLR
-  # optimizer = torch.optim.Adam(model.parameters(), weight_decay=5e-4, lr=config.start_lr)
-  optimizer = torch.optim.Adam(model.parameters(), lr=config.start_lr)
+  params = filter(lambda p: p.requires_grad, model.parameters())
+  optimizer = torch.optim.Adam(params, lr=config.start_lr)
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
 
   return optimizer, scheduler
@@ -46,9 +45,9 @@ def train(model, config):
   validator = Validator(model, logger, config)
   # transformer = Transformer()
   transformer = CropTransformer()
-  margin = 1
+  margin = 5
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
-  cos_loss_fn = torch.nn.CosineEmbeddingLoss()
+  cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1)
   similarity_loss_fn = torch.nn.BCELoss()
 
   # Data
@@ -60,10 +59,6 @@ def train(model, config):
   n_batches = len(dataloader)
   n_epochs = math.ceil(config.optim_steps / n_batches)
   pbar = Progressbar(n_epochs, n_batches)
-
-  def get_lr(optimiz):
-    for param_group in optimiz.param_groups:
-      return param_group['lr']
 
   optim_steps = 0
   val_freq = config.validation_freq
@@ -89,13 +84,15 @@ def train(model, config):
       outputs = model(inputs)
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
+      
+      # Triplet loss
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-# 
+
       # Direct net loss
-      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
-      net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
-      net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
-      net_loss = net_match_loss + net_not_match_loss
+      # a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
+      # net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      # net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
+      # net_loss = net_match_loss + net_not_match_loss
 
       # Cosine similarity loss
       y_size = anchors.size(0)
@@ -104,7 +101,10 @@ def train(model, config):
       cos_not_match_loss = cos_loss_fn(anchors, negatives, -1 * y)
       cos_loss = cos_match_loss + cos_not_match_loss
 
-      loss_dict = dict(triplet=triplet_loss, cos=cos_loss, net=net_loss)
+      # loss_dict = dict(triplet=triplet_loss, cos=cos_loss, net=net_loss)
+      loss_dict = dict(triplet=triplet_loss, cos=cos_loss)
+      # loss_dict = dict(net=net_loss)
+
       loss = sum(loss_dict.values())
       loss.backward()
       optimizer.step()

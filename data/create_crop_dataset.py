@@ -23,8 +23,12 @@ def create_crops(im_path):
   return im, cropped_im
 
 def main():
-  im_dir = Path('../datasets/copydays/original_src')
-  out_dir = Path('../datasets/copydays_crop')
+  # im_dir = Path('../datasets/copydays/original_src')
+  # out_dir = Path('../datasets/copydays_crop')
+
+  im_dir = Path('../datasets/places365/validation_val/original_src')
+  out_dir = Path('../datasets/places365/validation_val/cropped')
+
   (out_dir / 'original').mkdir(exist_ok=True, parents=True) 
   (out_dir / 'fake').mkdir(exist_ok=True) 
 

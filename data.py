@@ -65,7 +65,8 @@ class TripletDataset(Dataset):
     return self.to_tensor(im), transformed_ims
 
 class CopyDataset(Dataset):
-  def __init__(self, index_file):
+  def __init__(self, index_file, config):
+    self.im_size = config.image_input_size
     self.data_root = str(Path(index_file).parent)
     with open(index_file) as infile:
       self.index_json = json.load(infile)
@@ -81,8 +82,10 @@ class CopyDataset(Dataset):
 
     open_image = lambda p: Image.open('{}/{}'.format(self.data_root, p))
     im = open_image(data['path'])
-    
-    return im, data['im_type'], data['match_id'], data['im_id']
+
+    # TODO: Want to remove uniform size later
+    uniform_size = transforms.Resize((self.im_size, self.im_size))
+    return uniform_size(im), data['im_type'], data['match_id'], data['im_id']
 
 
 

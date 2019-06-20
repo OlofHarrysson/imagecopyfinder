@@ -1,7 +1,7 @@
 import argparse
 from utils.controller import train
 from config.config_util import choose_config
-from resnet import Resnet18, DistanceNet
+from models.distancenet import DistanceNet
 from utils.utils import seed_program
 
 def parse_args():

@@ -24,7 +24,8 @@ class DefaultConfig():
 
     self.dataset = 'datasets/cifar_bigger'
 
-    self.validation_dataset = 'datasets/copydays_crop'
+    # self.validation_dataset = 'datasets/copydays_crop'
+    self.validation_dataset = 'datasets/places365/validation_val'
 
     self.n_model_features = 10
 
@@ -68,8 +69,8 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
-    # self.n_model_features = 3
-    self.n_model_features = 400
+    self.n_model_features = 3
+    # self.n_model_features = 400
     self.max_val_batches = 10
     # self.max_val_batches = 30
     # self.batch_size = 2

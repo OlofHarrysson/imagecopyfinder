@@ -16,7 +16,7 @@ class Validator():
       return batch[0]
 
     index_file = f'{config.validation_dataset}/index.json'
-    self.dataset = CopyDataset(index_file)
+    self.dataset = CopyDataset(index_file, config)
     self.dataloader = DataLoader(self.dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
 
   def validate(self, step):
