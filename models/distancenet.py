@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from triplet import create_triplets, create_doublets
 from collections import defaultdict
-from .resnet import resnet18
+from .resnet import *
 from .resnet import BasicBlock
 
 class DistanceNet(nn.Module):
@@ -12,8 +12,8 @@ class DistanceNet(nn.Module):
     super().__init__()
     self.device = 'cuda' if config.use_gpu else 'cpu'
     self.feature_extractor = FeatureExtractor(config)
-    self.similarity_net = SimilarityNet(config)
-    self.distance_measurer = DistanceMeasurer(config, self.similarity_net)
+    # self.similarity_net = SimilarityNet(config)
+    self.distance_measurer = DistanceMeasurer(config)
 
   def forward(self, inputs):
     inputs = inputs.to(self.device)
@@ -45,12 +45,13 @@ class FeatureExtractor(nn.Module):
   def __init__(self, config):
     super().__init__()
     self.basenet = resnet18(pretrained=config.pretrained)
+    # self.basenet = resnet50(pretrained=config.pretrained)
     # for param in self.basenet.parameters():
     #   param.requires_grad = False
 
     n_filters = self.basenet.fc.in_features
     blocks = [BasicBlock(n_filters, n_filters) for _ in range(2)]
-    self.blocks = nn.Sequential(*blocks)
+    # self.blocks = nn.Sequential(*blocks)
 
     self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
     n_features = config.n_model_features
@@ -99,7 +100,7 @@ class SimilarityNet(nn.Module):
     return torch.sigmoid(self.end(x))
 
 class DistanceMeasurer():
-  def __init__(self, config, sim_net):
+  def __init__(self, config):
     self.distance_metrics = []
     add_metric = lambda m: self.distance_metrics.append(m)
     add_metric(CosineSimilarity())
@@ -137,6 +138,7 @@ class DistanceMeasurer():
         _, max_ind = sim.max(0)
         corrects[str(metric)].append((max_ind == q_ind).item())
 
+    # print(sim)
     return corrects
 
 

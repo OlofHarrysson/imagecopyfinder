@@ -27,7 +27,7 @@ class TripletDataset(Dataset):
     self.transform = transform
     self.to_tensor = transforms.ToTensor()
     self.image_files = []
-    self.im_size = config.image_input_size
+    # self.im_size = config.image_input_size
     
     im_types = ['.jpg', '.png']
     is_image = lambda path: path.suffix in im_types
@@ -52,21 +52,22 @@ class TripletDataset(Dataset):
     if im.mode != 'RGB': # Handle black & white images
       im = im.convert(mode='RGB') 
 
-    uniform_size = transforms.Resize((self.im_size, self.im_size))
-    im = uniform_size(im)
+    # uniform_size = transforms.Resize((self.im_size, self.im_size))
+    # im = uniform_size(im)
 
     transformed_ims = []
     for _ in range(self.n_fakes):
       t_im = self.transform(im)
-      t_im = uniform_size(t_im)
-      transformed_ims.append(self.to_tensor(t_im))
+      # t_im = uniform_size(t_im)
+      # transformed_ims.append(self.to_tensor(t_im))
+      transformed_ims.append(t_im)
 
     # Returns original image, list of transformed images
-    return self.to_tensor(im), transformed_ims
+    # return self.to_tensor(im), transformed_ims
+    return im, transformed_ims[0]
 
 class CopyDataset(Dataset):
   def __init__(self, index_file, config):
-    self.im_size = config.image_input_size
     self.data_root = str(Path(index_file).parent)
     with open(index_file) as infile:
       self.index_json = json.load(infile)
@@ -82,10 +83,12 @@ class CopyDataset(Dataset):
 
     open_image = lambda p: Image.open('{}/{}'.format(self.data_root, p))
     im = open_image(data['path'])
+    im = im.convert('RGB')
 
     # TODO: Want to remove uniform size later
-    uniform_size = transforms.Resize((self.im_size, self.im_size))
+    uniform_size = transforms.Resize((300, 300))
     return uniform_size(im), data['im_type'], data['match_id'], data['im_id']
+    # return im, data['im_type'], data['match_id'], data['im_id']
 
 
 

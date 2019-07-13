@@ -25,12 +25,15 @@ class DefaultConfig():
     self.dataset = 'datasets/cifar_bigger'
 
     # self.validation_dataset = 'datasets/copydays_crop'
-    self.validation_dataset = 'datasets/places365/validation_val'
+    self.validation_dataset = 'datasets/places365_crop'
 
     self.n_model_features = 10
 
-    # Data input size
-    self.image_input_size = 32
+    # Range of Data input size image sizes
+    # self.image_input_size = (200, 500)
+    self.image_input_size = (300, 300)
+
+    # self.validation_im_size = 
 
     self.batch_size = 3
 
@@ -69,6 +72,7 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
+    self.image_input_size = (30, 35)
     self.n_model_features = 3
     # self.n_model_features = 400
     self.max_val_batches = 10
@@ -83,6 +87,9 @@ class Laptop(DefaultConfig):
 
     self.seed = 9
 
+    # self.n_model_features = 8192
+
+
 
 
 class Colab(DefaultConfig):
@@ -90,18 +97,20 @@ class Colab(DefaultConfig):
     super().__init__(config_str)
     self.num_workers = 16
     # self.dataset = 'datasets/imagenet'
-    self.dataset = 'datasets/places365/validation'
+    # self.dataset = 'datasets/places365/validation'
+    self.dataset = 'datasets/places365_big' # Without the places365 crop used for validation
 
     # self.n_model_features = 512
-    self.n_model_features = 2048
-    self.top_x = int(self.n_model_features * 0.9)
+    # self.n_model_features = 2048
+    self.n_model_features = 8192
 
-    self.image_input_size = 300
+    self.top_x = int(self.n_model_features * 0.3)
+
     self.batch_size = 32
 
     # self.pretrained = False
 
-    self.validation_freq = 60
+    self.validation_freq = 100
 
 
 
