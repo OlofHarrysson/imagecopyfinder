@@ -90,11 +90,35 @@ class CopyDataset(Dataset):
     return uniform_size(im), data['im_type'], data['match_id'], data['im_id']
     # return im, data['im_type'], data['match_id'], data['im_id']
 
+class FlipDataset(Dataset):
+  def __init__(self, index_file, config):
+    self.data_root = str(Path(index_file).parent)
+    with open(index_file) as infile:
+      self.index_json = json.load(infile)
+
+    # TODO: Asssert tht there is both query and db
+    assert self.index_json,'{} dataset is empty'.format(index_file)
+
+  def __len__(self):
+    return len(self.index_json)
+
+  def __getitem__(self, index):
+    data = self.index_json[index]
+
+    open_image = lambda p: Image.open('{}/{}'.format(self.data_root, p))
+    im = open_image(data['path'])
+    im = im.convert('RGB')
+
+    # TODO: Want to remove uniform size later
+    uniform_size = transforms.Resize((300, 300))
+    return uniform_size(im), data['im_type'], data['match_id'], data['im_id']
+    # return im, data['im_type'], data['match_id'], data['im_id']
+
 
 
 if __name__ == '__main__':
   import visdom, torch, random
-  from transform import Transformer, CropTransformer
+  from transform import *
   from config.config_util import choose_config
   import imgaug as ia
 
@@ -108,7 +132,8 @@ if __name__ == '__main__':
   clear_envs(viz)
 
   # transformer = Transformer()
-  transformer = CropTransformer()
+  # transformer = CropTransformer()
+  transformer = FlipTransformer()
   # config = choose_config('laptop')
   config = choose_config('colab')
   dataset = TripletDataset('datasets/places365/validation', transformer, config)
@@ -117,12 +142,14 @@ if __name__ == '__main__':
   random.shuffle(data_inds)
   n_to_show = 5
   data_inds = data_inds[:n_to_show]
+  to_tensor = transforms.ToTensor()
 
   def transform_im(ind):
     im, t_im = dataset[ind]
-    t_im = t_im[0]
-    return torch.cat((im, t_im), dim=1)
+    return to_tensor(im), to_tensor(t_im)
 
   for i in data_inds:
-    im = transform_im(i)
+    im, t_im = transform_im(i)
+    # viz.images([im, t_im])
     viz.image(im)
+    viz.image(t_im)

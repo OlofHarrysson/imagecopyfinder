@@ -103,6 +103,6 @@ def test2():
   print(p)
 
 if __name__ == '__main__':
-  # test()
+  test()
   # test2()
-  test3()
+  # test3()

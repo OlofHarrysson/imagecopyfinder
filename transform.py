@@ -5,6 +5,21 @@ import imgaug.augmenters as iaa
 # from imgaug import parameters as iap
 import numpy as np
 
+class FlipTransformer():
+  def __init__(self):
+    self.seq = iaa.SomeOf((1, 2), [
+      iaa.Fliplr(1.0),
+      iaa.Flipud(1.0),
+      ])
+
+  def __call__(self, im):
+    augmented_im = self.seq.augment_image(np.array(im))
+    return Image.fromarray(augmented_im)
+
+  def numpy_transform(self, im):
+    return self.seq.augment_image(np.array(im))
+
+
 class CropTransformer():
   def __init__(self):
     minc, maxc = 0.05, 0.3
@@ -134,6 +149,7 @@ if __name__ == '__main__':
   seed = random.randint(0, 10000)
   ia.seed(seed)
 
-  transformer = Transformer()
+  # transformer = Transformer()
+  transformer = FlipTransformer()
   im = Image.open('datasets/sheepie.jpg')
   transformer.grid([np.array(im)])

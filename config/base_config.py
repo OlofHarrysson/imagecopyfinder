@@ -25,7 +25,8 @@ class DefaultConfig():
     self.dataset = 'datasets/cifar_bigger'
 
     # self.validation_dataset = 'datasets/copydays_crop'
-    self.validation_dataset = 'datasets/places365_crop'
+    # self.validation_dataset = 'datasets/places365_crop'
+    self.validation_dataset = 'datasets/places365_flip'
 
     self.n_model_features = 10
 
@@ -77,8 +78,8 @@ class Laptop(DefaultConfig):
     # self.n_model_features = 400
     self.max_val_batches = 10
     # self.max_val_batches = 30
-    # self.batch_size = 2
-    self.batch_size = 6
+    # self.batch_size = 3
+    self.batch_size = 16
 
     self.sample = True
 
@@ -110,7 +111,8 @@ class Colab(DefaultConfig):
 
     # self.pretrained = False
 
-    self.validation_freq = 100
+    self.validation_freq = 50
+
 
 
 

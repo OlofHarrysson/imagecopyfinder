@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from triplet import create_triplets, create_doublets
 from logger import Logger
 from utils.validator import Validator
-from transform import Transformer, CropTransformer
+from transform import *
 from pathlib import Path
 import torchvision.transforms as transforms
 import numpy as np
@@ -47,17 +47,13 @@ def init_training(model, config):
 
 
 def train(model, config):
-  # model_parameters = filter(lambda p: p.requires_grad, model.feature_extractor.parameters())
-  # params = sum([np.prod(p.size()) for p in model_parameters])
-  # print(params/1e6)
-  # qwe
-
   # clear_output_dir()
   optimizer, lr_scheduler = init_training(model, config)
   logger = Logger(config)
   validator = Validator(model, logger, config)
   # transformer = Transformer()
-  transformer = CropTransformer()
+  # transformer = CropTransformer()
+  transformer = FlipTransformer()
   margin = 5
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
   cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1)
@@ -95,8 +91,8 @@ def train(model, config):
       pbar.update(epoch, batch_i)
 
       # Validation
-      # if optim_steps % val_freq == 0:
-      #   validator.validate(optim_steps)
+      if optim_steps % val_freq == 0:
+        validator.validate(optim_steps)
 
       # Decrease learning rate
       if optim_steps % config.lr_step_frequency == 0:
@@ -124,21 +120,19 @@ def train(model, config):
       y_size = anchors.size(0)
       y = torch.ones(y_size).to(model.device)
       cos_match_loss = cos_loss_fn(anchors, positives, y)
-      cos_not_match_loss = cos_loss_fn(anchors, negatives, -1 * y)
-      cos_loss = cos_match_loss + cos_not_match_loss
-      cos_loss = cos_not_match_loss
+      cos_not_match_loss = cos_loss_fn(anchors, negatives, -y)
+      # cos_loss = cos_match_loss + cos_not_match_loss * 60 # TODO: multiplier
+      # cos_loss = cos_not_match_loss
 
       # loss_dict = dict(triplet=triplet_loss, cos=cos_loss, net=net_loss)
-      loss_dict = dict(triplet=triplet_loss, cos=cos_loss)
+      loss_dict = dict(triplet=triplet_loss, cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
       # loss_dict = dict(cos=cos_loss)
       # loss_dict = dict(net=net_loss)
       # loss_dict = dict(triplet=triplet_loss)
 
       loss = sum(loss_dict.values())
       loss.backward()
-      plot_grad_flow(logger, model.named_parameters())
-
-      qweqw
+      # plot_grad_flow(logger, model.named_parameters())
 
       optimizer.step()
       optim_steps += 1
@@ -148,12 +142,12 @@ def train(model, config):
       logger.log_loss(loss, optim_steps)
       logger.log_loss_percent(loss_dict, optim_steps)
       logger.log_corrects(corrects, optim_steps)
+      logger.log_cosine(anchors, positives, negatives)
       
       # Frees up GPU memory
       del data; del outputs
 
 def plot_grad_flow(logger, named_parameters):
-  import matplotlib.pyplot as plt
   import plotly.plotly as py
   import plotly.graph_objs as go
 
@@ -165,12 +159,9 @@ def plot_grad_flow(logger, named_parameters):
       continue # The resnet weights we dont use
 
     if n == 'feature_extractor.fc.weight':
-      print(n)
-      print(p.grad.shape)
-      print(p)
-      data = p.detach().numpy()
+      data = p.abs()
+      data = data.detach().numpy()
       data = data.flatten()
-      print(data.shape)
 
       fig = {
           "data": [{
@@ -198,44 +189,7 @@ def plot_grad_flow(logger, named_parameters):
       }
 
       viz = logger.viz
-      viz.plotlyplot(fig)
-      # py.iplot(fig, filename = 'violin', validate = False)
-      qweqwe
-
-    if(p.requires_grad) and ("bias" not in n):
-      # if p.grad is None:
-      #   n_none += 1
-      #   # layers.append(n)
-      # else:
-      #   n_grad += 1
-
-      layers.append(n)
-      # print(n)
-      # print(p.grad.shape)
-      # print(p.shape)
-      # qweq
-      ave_grads.append(p.grad.abs().mean())
-
-
-  # print(n_none, n_grad)
-  # print(layers)
-  qweqw
-
-  plt.plot(ave_grads, alpha=0.3, color="b")
-  plt.hlines(0, 0, len(ave_grads)+1, linewidth=1, color="k" )
-  plt.xticks(range(0,len(ave_grads), 1), layers, rotation="vertical")
-  plt.xlim(xmin=0, xmax=len(ave_grads))
-  plt.xlabel("Layers")
-  plt.ylabel("average gradient")
-  plt.title("Gradient flow")
-  plt.grid(True)
-  plt.show()
-
-
-  def pause():
-    input("PRESS KEY TO CONTINUE.")
-
-  pause()
+      viz.plotlyplot(fig, win='gradiets_last_layer')
 
 if __name__ == '__main__':
   train()

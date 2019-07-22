@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 from utils.utils import EMAverage
+from models.distancenet import CosineSimilarity
+import plotly.graph_objects as go
 
 def clear_envs(viz):
   [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
@@ -181,3 +183,29 @@ class Logger():
           legend=metrics,
       )
     )
+
+  def log_cosine(self, anchors, positives, negatives):
+    metric = CosineSimilarity()
+
+    pos_sim = metric(anchors, positives)
+    pos_sim = pos_sim.cpu().detach().numpy()
+    neg_sim = metric(anchors, negatives)
+    neg_sim = neg_sim.cpu().detach().numpy()
+
+    title_text = 'Cosine Distance'
+    fig = go.Figure()
+
+    violin_plot = lambda ys, side, name: go.Violin(y=ys,
+                            # box_visible=True,
+                            meanline_visible=True,
+                            spanmode='hard',
+                            side=side,
+                            x0='Pos/Neg',
+                            name=name,
+                            )
+
+    fig.add_trace(violin_plot(pos_sim, 'negative', 'Positives'))
+    fig.add_trace(violin_plot(neg_sim, 'positive', 'Negatives'))
+
+    # TODO: Visdom doesn't work with title
+    self.viz.plotlyplot(fig, win=title_text)
