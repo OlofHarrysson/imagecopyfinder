@@ -206,6 +206,24 @@ class Logger():
 
     fig.add_trace(violin_plot(pos_sim, 'negative', 'Positives'))
     fig.add_trace(violin_plot(neg_sim, 'positive', 'Negatives'))
+    # TODO: Visdom doesn't work with title in layout
 
-    # TODO: Visdom doesn't work with title
+    fig.update_layout(
+      shapes=[
+        # Line Horizontal
+        go.layout.Shape(
+          type="line",
+          x0=-0.5,
+          y0=0.75,
+          x1=0.5,
+          y1=0.75,
+          line=dict(
+            width=2,
+            dash="dot",
+          ),
+        ),
+          
+      ]
+    )
+
     self.viz.plotlyplot(fig, win=title_text)

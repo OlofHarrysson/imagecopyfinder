@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from data import TripletDataset, CopyDataset
+from data import TripletDataset, CopyDataset, OnlineTransformDataset
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torchvision.transforms.functional import to_pil_image, to_tensor
@@ -16,7 +16,8 @@ class Validator():
       return batch[0]
 
     index_file = f'{config.validation_dataset}/index.json'
-    self.dataset = CopyDataset(index_file, config)
+    # self.dataset = CopyDataset(index_file, config)
+    self.dataset = OnlineTransformDataset(config.validation_dataset)
     self.dataloader = DataLoader(self.dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
 
   def validate(self, step):

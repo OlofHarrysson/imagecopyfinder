@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 from pathlib import Path
 import torchvision.transforms as transforms
 import json
+import imgaug as ia
+import imgaug.augmenters as iaa
 
 # TODO: benchmark?
 # https://archive.org/details/ukbench
@@ -22,12 +24,11 @@ import json
 
 
 class TripletDataset(Dataset):
-  def __init__(self, im_dirs, transform, config, n_fakes=1):
+  def __init__(self, im_dirs, transform, n_fakes=1):
     self.n_fakes = n_fakes
     self.transform = transform
     self.to_tensor = transforms.ToTensor()
     self.image_files = []
-    # self.im_size = config.image_input_size
     
     im_types = ['.jpg', '.png']
     is_image = lambda path: path.suffix in im_types
@@ -72,31 +73,7 @@ class CopyDataset(Dataset):
     with open(index_file) as infile:
       self.index_json = json.load(infile)
 
-    # TODO: Asssert tht there is both query and db
-    assert self.index_json,'{} dataset is empty'.format(index_file)
-
-  def __len__(self):
-    return len(self.index_json)
-
-  def __getitem__(self, index):
-    data = self.index_json[index]
-
-    open_image = lambda p: Image.open('{}/{}'.format(self.data_root, p))
-    im = open_image(data['path'])
-    im = im.convert('RGB')
-
-    # TODO: Want to remove uniform size later
-    uniform_size = transforms.Resize((300, 300))
-    return uniform_size(im), data['im_type'], data['match_id'], data['im_id']
-    # return im, data['im_type'], data['match_id'], data['im_id']
-
-class FlipDataset(Dataset):
-  def __init__(self, index_file, config):
-    self.data_root = str(Path(index_file).parent)
-    with open(index_file) as infile:
-      self.index_json = json.load(infile)
-
-    # TODO: Asssert tht there is both query and db
+    # TODO: Asssert that there is both query and db
     assert self.index_json,'{} dataset is empty'.format(index_file)
 
   def __len__(self):
@@ -115,6 +92,38 @@ class FlipDataset(Dataset):
     # return im, data['im_type'], data['match_id'], data['im_id']
 
 
+class OnlineTransformDataset(Dataset):
+  def __init__(self, im_folder):
+    self.ims = list(Path(im_folder).iterdir())
+    self.seq = iaa.SomeOf((1, None), [
+      iaa.Fliplr(1.0),
+      iaa.Flipud(1.0),
+      iaa.Rot90((1, 3), keep_size=False)
+    ], random_order=True)
+
+  def __len__(self):
+    return len(self.ims) * 2
+
+  def __getitem__(self, index):
+    even_index = index % 2 == 0
+
+    # Match id
+    match_id = int(index / 2)
+
+    # Image
+    im_path = self.ims[match_id]
+    im = Image.open(im_path)
+    im = im.convert('RGB')
+    if even_index:
+      im = Image.fromarray(self.seq.augment_image(np.array(im)))
+
+    # Query/database type
+    if even_index:
+      im_type = 'query'
+    else:
+      im_type = 'database'
+
+    return im, im_type, match_id, index
 
 if __name__ == '__main__':
   import visdom, torch, random
@@ -136,7 +145,8 @@ if __name__ == '__main__':
   transformer = FlipTransformer()
   # config = choose_config('laptop')
   config = choose_config('colab')
-  dataset = TripletDataset('datasets/places365/validation', transformer, config)
+  dataset = TripletDataset('datasets/places365/validation', transformer)
+
 
   data_inds = list(range(len(dataset)))
   random.shuffle(data_inds)

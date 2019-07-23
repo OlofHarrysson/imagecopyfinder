@@ -56,7 +56,7 @@ def train(model, config):
   transformer = FlipTransformer()
   margin = 5
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
-  cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1)
+  cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1) # margin helps with separating the pos/neg in violin loss for fliptransformer. The negative tail is shorter.
   similarity_loss_fn = torch.nn.BCELoss()
 
   # Data
@@ -74,7 +74,7 @@ def train(model, config):
     return torch.stack(original_ims), torch.stack(transformed_ims)
 
   batch_size = config.batch_size
-  dataset = TripletDataset(config.dataset, transformer, config)
+  dataset = TripletDataset(config.dataset, transformer)
   dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers, collate_fn=collate)
 
   # Init progressbar
@@ -121,14 +121,9 @@ def train(model, config):
       y = torch.ones(y_size).to(model.device)
       cos_match_loss = cos_loss_fn(anchors, positives, y)
       cos_not_match_loss = cos_loss_fn(anchors, negatives, -y)
-      # cos_loss = cos_match_loss + cos_not_match_loss * 60 # TODO: multiplier
-      # cos_loss = cos_not_match_loss
+      cos_not_match_loss *= 60
 
-      # loss_dict = dict(triplet=triplet_loss, cos=cos_loss, net=net_loss)
       loss_dict = dict(triplet=triplet_loss, cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
-      # loss_dict = dict(cos=cos_loss)
-      # loss_dict = dict(net=net_loss)
-      # loss_dict = dict(triplet=triplet_loss)
 
       loss = sum(loss_dict.values())
       loss.backward()

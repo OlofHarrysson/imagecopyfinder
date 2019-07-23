@@ -7,10 +7,10 @@ import numpy as np
 
 class FlipTransformer():
   def __init__(self):
-    self.seq = iaa.SomeOf((1, 2), [
+    self.seq = iaa.SomeOf((1, None), [
       iaa.Fliplr(1.0),
-      iaa.Flipud(1.0),
-      ])
+      iaa.Rot90((1, 3), keep_size=False)
+    ], random_order=True)
 
   def __call__(self, im):
     augmented_im = self.seq.augment_image(np.array(im))
@@ -51,7 +51,7 @@ class Transformer():
         sometimes(crop()),
         sometimes(iaa.OneOf([
           dropout(),
-          uniform_size(self.im_size),
+          # uniform_size(self.im_size), TODO: this???
         ])),
         # TODO: Blend with other images.
       ],
