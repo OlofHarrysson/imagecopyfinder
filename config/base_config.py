@@ -27,8 +27,8 @@ class DefaultConfig():
     # self.validation_dataset = 'datasets/copydays_crop'
     # self.validation_dataset = 'datasets/places365_crop'
     # self.validation_dataset = 'datasets/places365_flip'
-    # self.validation_dataset = 'datasets/places365/validation_val/original_src'
-    self.validation_dataset = 'datasets/png-ZuBuDc'
+    self.validation_dataset = 'datasets/places365/validation_val/original_src'
+    # self.validation_dataset = 'datasets/copydays/original'
 
     self.n_model_features = 10
 

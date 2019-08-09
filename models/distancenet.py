@@ -134,8 +134,9 @@ def assert_range(func):
   def wrapper(*args, **kwargs):
     similarity = func(*args, **kwargs)
 
+    eps = 1e-4
     min_val, max_val = 0, 1
-    is_ok = similarity.ge(min_val).all() and similarity.le(max_val).all()
+    is_ok = similarity.ge(min_val-eps).all() and similarity.le(max_val+eps).all()
     assert is_ok, f'Similarity needs to be in range {min_val} - {max_val}. Function {func} gave {similarity} instead'
 
     return similarity

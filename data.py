@@ -143,7 +143,10 @@ if __name__ == '__main__':
   # transformer = FlipTransformer()
   # config = choose_config('laptop')
   config = choose_config('colab')
-  dataset = TripletDataset('datasets/places365/validation', transformer)
+  
+  # data_path = 'datasets/copydays/original'
+  data_path = 'datasets/places365/validation'
+  dataset = TripletDataset(data_path, transformer)
 
 
   data_inds = list(range(len(dataset)))
