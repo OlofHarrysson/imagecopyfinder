@@ -32,7 +32,7 @@ def create_doublets(embeddings):
 
 
 def test():
-  b_size = 3
+  b_size = 8
   batch = range(1, b_size+1)
   batch2 = [b+.5 for b in batch]
 
@@ -60,8 +60,18 @@ def test():
   print("a: {},  p: {},  n: {}".format(a, p, n))
   print('n={} -> {} comparisons'.format(len_b, len(n)))
 
+
+def test2():
+  batch = [[1, 2], [3, 4]]
+  n_repeat = len(batch)
+  a = torch.tensor(batch)
+  n = a.repeat_interleave(n_repeat, dim=1)
+  p = a.repeat(n_repeat, 1)
+  print(n)
+  print(p)
+
 def test3():
-  b_size = 32
+  b_size = 8
   batch = range(1, b_size+1)
   batch2 = [b+.5 for b in batch]
 
@@ -92,15 +102,6 @@ def test3():
 
   print("a: {},  p: {},  n: {}".format(a, p, n))
   print('n={} -> {} comparisons'.format(len_b, len(a)))
-
-def test2():
-  batch = [[1, 2], [3, 4]]
-  n_repeat = len(batch)
-  a = torch.tensor(batch)
-  n = a.repeat_interleave(n_repeat, dim=1)
-  p = a.repeat(n_repeat, 1)
-  print(n)
-  print(p)
 
 if __name__ == '__main__':
   test()

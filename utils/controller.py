@@ -10,24 +10,12 @@ from pathlib import Path
 import torchvision.transforms as transforms
 import numpy as np
 
-# TODO: I can increase the augmentation depending on how many easy/hard there are. Possibly also increase margin?
-# TODO: Change distance norm 2->1? I want the system to match because there are a lot of features that are close, not fuck up because one feature is bad and dominates the others. Could even select the top% features that matchest best.
-# TODO: Could this be used as a pretraining system for triplet loss
-
-
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
 
 # TODO: Now the anchor+positive is the same all the time. What if we expand the number of fakes for more combinations?
 
 
-# TODO:
-# More data
-
-
 # TODO: After all conv2d layers, do adaptive pooling and continue with conv1d layers. At this point I don't care about spatial info anymore. Perhaps add a fc in after the adaptive pooling. But the reason is that conv layers use less parameters. Can try with fc layers as well.
-
-
-
 
 def clear_output_dir():
   [p.unlink() for p in Path('output').iterdir()]
@@ -52,12 +40,18 @@ def train(model, config):
   logger = Logger(config)
   validator = Validator(model, logger, config)
   # transformer = Transformer()
-  # transformer = CropTransformer()
-  transformer = FlipTransformer()
+  transformer = CropTransformer()
+  # transformer = FlipTransformer()
   margin = 5
   triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
   cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1) # margin helps with separating the pos/neg in violin loss for fliptransformer. The negative tail is shorter.
   similarity_loss_fn = torch.nn.BCELoss()
+
+  # make own cosine loss which has positive margin. and another which has margin in both directions around 0
+
+  # change adaptive average pooling for that other one
+  # two stage network. First stage computes cosine similarity, second stage directly compares the top 10 results from the cosine similarity with similaritynet
+  # make sure that dont resize small side in transformer
 
   # Data
   def collate(batch):
@@ -127,8 +121,6 @@ def train(model, config):
 
       loss = sum(loss_dict.values())
       loss.backward()
-      # plot_grad_flow(logger, model.named_parameters())
-
       optimizer.step()
       optim_steps += 1
 
@@ -141,50 +133,6 @@ def train(model, config):
       
       # Frees up GPU memory
       del data; del outputs
-
-def plot_grad_flow(logger, named_parameters):
-  import plotly.plotly as py
-  import plotly.graph_objs as go
-
-  ave_grads = []
-  layers = []
-  n_none, n_grad = 0, 0
-  for n, p in named_parameters:
-    if n == 'feature_extractor.basenet.fc.weight':
-      continue # The resnet weights we dont use
-
-    if n == 'feature_extractor.fc.weight':
-      data = p.abs()
-      data = data.detach().numpy()
-      data = data.flatten()
-
-      fig = {
-          "data": [{
-              "type": 'violin',
-              "y": data,
-              "box": {
-                  "visible": True
-              },
-              "line": {
-                  "color": 'black'
-              },
-              "meanline": {
-                  "visible": True
-              },
-              "fillcolor": '#8dd3c7',
-              "opacity": 0.6,
-              "x0": 'Total Bill'
-          }],
-          "layout" : {
-              "title": "",
-              "yaxis": {
-                  "zeroline": False,
-              }
-          }
-      }
-
-      viz = logger.viz
-      viz.plotlyplot(fig, win='gradiets_last_layer')
 
 if __name__ == '__main__':
   train()

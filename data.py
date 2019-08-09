@@ -6,6 +6,7 @@ import torchvision.transforms as transforms
 import json
 import imgaug as ia
 import imgaug.augmenters as iaa
+from transform import *
 
 # TODO: benchmark?
 # https://archive.org/details/ukbench
@@ -95,11 +96,8 @@ class CopyDataset(Dataset):
 class OnlineTransformDataset(Dataset):
   def __init__(self, im_folder):
     self.ims = list(Path(im_folder).iterdir())
-    self.seq = iaa.SomeOf((1, None), [
-      iaa.Fliplr(1.0),
-      iaa.Flipud(1.0),
-      iaa.Rot90((1, 3), keep_size=False)
-    ], random_order=True)
+    # self.transformer = FlipTransformer()
+    self.transformer = CropTransformer()
 
   def __len__(self):
     return len(self.ims) * 2
@@ -115,7 +113,7 @@ class OnlineTransformDataset(Dataset):
     im = Image.open(im_path)
     im = im.convert('RGB')
     if even_index:
-      im = Image.fromarray(self.seq.augment_image(np.array(im)))
+      im = self.transformer(im)
 
     # Query/database type
     if even_index:
@@ -141,8 +139,8 @@ if __name__ == '__main__':
   clear_envs(viz)
 
   # transformer = Transformer()
-  # transformer = CropTransformer()
-  transformer = FlipTransformer()
+  transformer = CropTransformer()
+  # transformer = FlipTransformer()
   # config = choose_config('laptop')
   config = choose_config('colab')
   dataset = TripletDataset('datasets/places365/validation', transformer)

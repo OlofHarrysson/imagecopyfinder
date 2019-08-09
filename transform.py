@@ -19,7 +19,6 @@ class FlipTransformer():
   def numpy_transform(self, im):
     return self.seq.augment_image(np.array(im))
 
-
 class CropTransformer():
   def __init__(self):
     minc, maxc = 0.05, 0.3

@@ -15,13 +15,8 @@ def parse_args():
 
 def main(config_str):
   config = choose_config(config_str)
-  seed_program()
-
-  # Create model
-  # feature_extractor = Resnet18(config)
-  # distance_net = DistanceNet(config)
+  seed_program(config.seed)
   model = DistanceNet(config)
-
   train(model, config)
 
 if __name__ == '__main__':

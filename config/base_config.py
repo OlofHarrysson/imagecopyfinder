@@ -27,7 +27,8 @@ class DefaultConfig():
     # self.validation_dataset = 'datasets/copydays_crop'
     # self.validation_dataset = 'datasets/places365_crop'
     # self.validation_dataset = 'datasets/places365_flip'
-    self.validation_dataset = 'datasets/places365/validation_val/original_src'
+    # self.validation_dataset = 'datasets/places365/validation_val/original_src'
+    self.validation_dataset = 'datasets/png-ZuBuDc'
 
     self.n_model_features = 10
 
@@ -43,8 +44,8 @@ class DefaultConfig():
 
     self.distance_norm = 2
 
-    self.start_lr = 1e-3
-    self.end_lr = 1e-4
+    self.start_lr = 5e-2
+    self.end_lr = 1e-3
 
     self.optim_steps = 20000
     self.lr_step_frequency = 100
@@ -55,7 +56,6 @@ class DefaultConfig():
 
     # Seed to create reproducable training results
     self.seed = random.randint(0, 2**32 - 1)
-
 
 
   def get_parameters(self):
@@ -92,14 +92,10 @@ class Laptop(DefaultConfig):
     # self.n_model_features = 8192
 
 
-
-
 class Colab(DefaultConfig):
   def __init__(self, config_str):
     super().__init__(config_str)
     self.num_workers = 16
-    # self.dataset = 'datasets/imagenet'
-    # self.dataset = 'datasets/places365/validation'
     self.dataset = 'datasets/places365_big' # Without the places365 crop used for validation
 
     # self.n_model_features = 512

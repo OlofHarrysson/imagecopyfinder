@@ -70,18 +70,6 @@ class FeatureExtractor(nn.Module):
   def get_params(self):
     return 
 
-
-# class Resnet18(nn.Module):
-#   def __init__(self, config):
-#     super().__init__()
-#     n_features = config.n_model_features
-#     self.basenet = models.resnet18(pretrained=config.pretrained)
-#     # self.basenet = models.resnet34(pretrained=config.pretrained)
-#     self.basenet.fc = nn.Linear(self.basenet.fc.in_features, n_features)
-    
-#   def forward(self, x):
-#     return self.basenet(x)
-
 class SimilarityNet(nn.Module):
   def __init__(self, config):
     super().__init__()
@@ -140,7 +128,6 @@ class DistanceMeasurer():
 
     # print(sim)
     return corrects
-
 
 
 def assert_range(func):
