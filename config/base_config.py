@@ -44,8 +44,8 @@ class DefaultConfig():
 
     self.distance_norm = 2
 
-    self.start_lr = 5e-2
-    self.end_lr = 1e-3
+    self.start_lr = 1e-3
+    self.end_lr = 1e-4
 
     self.optim_steps = 20000
     self.lr_step_frequency = 100

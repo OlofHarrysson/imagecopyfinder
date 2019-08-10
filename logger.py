@@ -88,8 +88,8 @@ class Logger():
           xlabel='Steps',
           ylabel='Accuracy',
           title=f'Val Accuracy {name}',
-          ytickmin = 0,
-          ytickmax = 1,
+          # ytickmin = 0,
+          # ytickmax = 1,
           legend=['Top1', 'Top2', 'Top3', 'Top5'],
       )
     )

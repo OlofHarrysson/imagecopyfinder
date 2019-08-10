@@ -49,19 +49,12 @@ class FeatureExtractor(nn.Module):
     # for param in self.basenet.parameters():
     #   param.requires_grad = False
 
-    n_filters = self.basenet.fc.in_features
-    blocks = [BasicBlock(n_filters, n_filters) for _ in range(2)]
-    # self.blocks = nn.Sequential(*blocks)
-
     self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-    n_features = config.n_model_features
-    self.fc = nn.Linear(n_filters, n_features)
+    self.fc = nn.Linear(self.basenet.fc.in_features, config.n_model_features)
 
 
   def forward(self, x):
     x = self.basenet(x)
-    # return x
-    # x = self.blocks(x)
     x = self.avgpool(x)
     x = x.reshape(x.size(0), -1)
     x = self.fc(x)

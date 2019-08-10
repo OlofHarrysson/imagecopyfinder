@@ -21,7 +21,8 @@ class FlipTransformer():
 
 class CropTransformer():
   def __init__(self):
-    minc, maxc = 0.05, 0.3
+    # minc, maxc = 0.05, 0.3 # Medium
+    minc, maxc = 0.25, 0.4 # Hard
     crop_percent = ([minc, maxc], [minc, maxc], [minc, maxc], [minc, maxc])
     self.seq = iaa.Crop(percent=crop_percent, keep_size=False)
 

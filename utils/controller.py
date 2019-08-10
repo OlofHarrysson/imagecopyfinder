@@ -28,7 +28,8 @@ def init_training(model, config):
   # Optimizer & Scheduler
   # TODO CyclicLR
   params = filter(lambda p: p.requires_grad, model.parameters())
-  optimizer = torch.optim.Adam(params, lr=config.start_lr)
+  # optimizer = torch.optim.Adam(params, lr=config.start_lr)
+  optimizer = torch.optim.SGD(params, lr=config.start_lr)
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
 
   return optimizer, scheduler
