@@ -47,9 +47,40 @@ class GeneralizedMeanPoolingP(GeneralizedMeanPooling):
         self.p = Parameter(torch.ones(1) * norm)
 
 
-if __name__ == '__main__':
-  inp = torch.randn(2, 3, 3)
-  pool = GeneralizedMeanPooling(2)
+class GeneralizedMeanPoolingManyP(GeneralizedMeanPooling):
+  """ One p for each filter
+  """
+  def __init__(self, n_filters, norm=3, output_size=1, eps=1e-6):
+    super().__init__(norm, output_size, eps)
+    self.p = Parameter(torch.ones(n_filters) * norm)
 
-  out = pool(inp)
-  print(out.shape)
+  def forward(self, x):
+    p = self.p.repeat(x.size(0), 1).unsqueeze(-1).unsqueeze(-1)
+    x = x.clamp(min=self.eps).pow(p)
+    return F.adaptive_avg_pool2d(x, self.output_size).pow(1. / p)
+
+
+class AvgMaxPool(Module):
+  def __init__(self, output_size=1):
+    super().__init__()
+    self.output_size = output_size
+    self.mean_pools = [GeneralizedMeanPooling(i) for i in range(2, 5)]
+
+  def forward(self, x):
+    x1 = F.adaptive_avg_pool2d(x, self.output_size)
+    x2 = F.adaptive_max_pool2d(x, self.output_size)
+    x3 = torch.cat((x1, x2), dim=1)
+
+    for pool in self.mean_pools:
+      x3 = torch.cat((x3, pool(x)), dim=1)
+
+    # print(self.mean_pools)
+    # qwe
+
+    # x4 = F.lp_pool2d(x, 3, 3)
+    # print("oyoyoy")
+    # print(f'x shape: {x.shape}')
+    # print(f'x4 shape: {x4.shape}')
+    # print(f'x3 shape: {x3.shape}')
+    # qwe
+    return x3

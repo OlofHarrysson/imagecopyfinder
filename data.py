@@ -1,28 +1,52 @@
 from PIL import Image
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 import torchvision.transforms as transforms
-import json
+import json, random, torch
 import imgaug as ia
 import imgaug.augmenters as iaa
 from transform import *
 
 # TODO: benchmark?
-# https://archive.org/details/ukbench
 # http://icvl.ee.ic.ac.uk/DescrWorkshop/index.html#Challenge
 
+def setup_traindata(config, transformer):
+  def collate(batch):
+    im_sizes = config.image_input_size
+    im_size = random.randint(im_sizes[0], im_sizes[1])
+    uniform_size = transforms.Compose([
+      transforms.Resize((im_size, im_size)),
+      transforms.ToTensor(),
+      transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                           std=[0.229, 0.224, 0.225])
+    ])
 
-#TODO Other training datasets
-# SAVOIAS 1400 ims https://github.com/esaraee/Savoias-Dataset
-# Tencent 17M ims, 78k in val. From imagenet+openimages https://github.com/Tencent/tencent-ml-images#download-images
-# Places. Looked diverse and easy to download. Big dataset :)
+    original_ims = [uniform_size(b[0]) for b in batch]
+    transformed_ims = [uniform_size(b[1]) for b in batch]
 
+    return torch.stack(original_ims), torch.stack(transformed_ims)
 
-# TODO: Other val datasets
-# Oxford5K, Paris6K of buildings
-# This one? https://github.com/chenjun082/holidays
+  batch_size = config.batch_size
+  dataset = TripletDataset(config.dataset, transformer)
+  return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers, collate_fn=collate)
 
+def setup_valdata(config, transformer):
+  normalize = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
+    ])
+
+  def collate(batch):
+    item = list(batch[0])
+    item[0] = normalize(item[0]).unsqueeze(0)
+    return item
+
+  index_file = f'{config.validation_dataset}/index.json'
+  # self.dataset = CopyDataset(index_file, config)
+  dataset = OnlineTransformDataset(config.validation_dataset, transformer)
+  return DataLoader(dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
 
 class TripletDataset(Dataset):
   def __init__(self, im_dirs, transform, n_fakes=1):
@@ -94,10 +118,9 @@ class CopyDataset(Dataset):
 
 
 class OnlineTransformDataset(Dataset):
-  def __init__(self, im_folder):
+  def __init__(self, im_folder, transformer):
     self.ims = list(Path(im_folder).iterdir())
-    # self.transformer = FlipTransformer()
-    self.transformer = CropTransformer()
+    self.transformer = transformer
 
   def __len__(self):
     return len(self.ims) * 2
@@ -138,8 +161,8 @@ if __name__ == '__main__':
   viz = visdom.Visdom(port='6006')
   clear_envs(viz)
 
-  # transformer = Transformer()
-  transformer = CropTransformer()
+  transformer = AllTransformer()
+  # transformer = CropTransformer()
   # transformer = FlipTransformer()
   # config = choose_config('laptop')
   config = choose_config('colab')

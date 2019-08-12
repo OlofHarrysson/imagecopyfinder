@@ -5,7 +5,16 @@ import imgaug.augmenters as iaa
 # from imgaug import parameters as iap
 import numpy as np
 
-class FlipTransformer():
+
+class Transformer():
+  def numpy_transform(self, im):
+    return self.seq.augment_image(np.array(im))
+
+  def grid(self, im):
+    self.seq.show_grid(im, cols=6, rows=4)
+
+
+class FlipTransformer(Transformer):
   def __init__(self):
     self.seq = iaa.SomeOf((1, None), [
       iaa.Fliplr(1.0),
@@ -16,13 +25,10 @@ class FlipTransformer():
     augmented_im = self.seq.augment_image(np.array(im))
     return Image.fromarray(augmented_im)
 
-  def numpy_transform(self, im):
-    return self.seq.augment_image(np.array(im))
-
-class CropTransformer():
+class CropTransformer(Transformer):
   def __init__(self):
     # minc, maxc = 0.05, 0.3 # Medium
-    minc, maxc = 0.25, 0.4 # Hard
+    minc, maxc = 0, 0.35 # Hard
     crop_percent = ([minc, maxc], [minc, maxc], [minc, maxc], [minc, maxc])
     self.seq = iaa.Crop(percent=crop_percent, keep_size=False)
 
@@ -30,11 +36,17 @@ class CropTransformer():
     augmented_im = self.seq.augment_image(np.array(im))
     return Image.fromarray(augmented_im)
 
-  def numpy_transform(self, im):
-    return self.seq.augment_image(np.array(im))
+class RotateTransformer(Transformer):
+  def __init__(self):
+    rot = 180
+    self.seq = iaa.Affine(rotate=(-rot, rot))
+
+  def __call__(self, im):
+    augmented_im = self.seq.augment_image(np.array(im))
+    return Image.fromarray(augmented_im)
 
 
-class Transformer():
+class AllTransformer(Transformer):
   def __init__(self):
     self.im_size = 100 # TODO: When do I actually want to do this? Also resize in the dataset function. I'd say do crop in the dropout function since they don't match that well
     sometimes = lambda aug: iaa.Sometimes(0.5, aug)
@@ -62,13 +74,6 @@ class Transformer():
   def __call__(self, im):
     augmented_im = self.seq.augment_image(np.array(im))
     return Image.fromarray(augmented_im)
-
-  def numpy_transform(self, im):
-    return self.seq.augment_image(np.array(im))
-
-  def grid(self, im):
-    self.seq.show_grid(im, cols=6, rows=4)
-
 
 def blur():
   return iaa.OneOf([
@@ -149,7 +154,8 @@ if __name__ == '__main__':
   seed = random.randint(0, 10000)
   ia.seed(seed)
 
-  # transformer = Transformer()
-  transformer = FlipTransformer()
+  transformer = AllTransformer()
+  # transformer = FlipTransformer()
+  # transformer = RotateTransformer()
   im = Image.open('datasets/sheepie.jpg')
   transformer.grid([np.array(im)])

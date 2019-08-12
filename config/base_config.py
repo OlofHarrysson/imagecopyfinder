@@ -27,8 +27,9 @@ class DefaultConfig():
     # self.validation_dataset = 'datasets/copydays_crop'
     # self.validation_dataset = 'datasets/places365_crop'
     # self.validation_dataset = 'datasets/places365_flip'
-    self.validation_dataset = 'datasets/places365/validation_val/original_src'
-    # self.validation_dataset = 'datasets/copydays/original'
+    # self.validation_dataset = 'datasets/places365/validation_val/original_src'
+    self.validation_dataset = 'datasets/copydays/original'
+    # self.validation_dataset = 'datasets/videopairs'
 
     self.n_model_features = 10
 
@@ -38,7 +39,7 @@ class DefaultConfig():
 
     # self.validation_im_size = 
 
-    self.batch_size = 3
+    self.batch_size = 32
 
     self.pretrained = True
 
@@ -47,12 +48,12 @@ class DefaultConfig():
     self.start_lr = 1e-3
     self.end_lr = 1e-4
 
-    self.optim_steps = 20000
+    self.optim_steps = 10000
     self.lr_step_frequency = 100
 
     self.validation_freq = 200
 
-    self.top_x = 3
+    self.top_x = int(self.n_model_features * 0.3)
 
     # Seed to create reproducable training results
     self.seed = random.randint(0, 2**32 - 1)
@@ -76,20 +77,12 @@ class Laptop(DefaultConfig):
     self.use_gpu = False
     self.image_input_size = (30, 35)
     self.n_model_features = 3
-    # self.n_model_features = 400
     self.max_val_batches = 10
-    # self.max_val_batches = 30
-    # self.batch_size = 3
     self.batch_size = 16
 
     self.sample = True
-
     self.dataset = 'datasets/cifar_50'
-    # self.dataset = 'datasets/cifar_sample'
-
     self.seed = 9
-
-    # self.n_model_features = 8192
 
 
 class Colab(DefaultConfig):
@@ -101,13 +94,7 @@ class Colab(DefaultConfig):
     # self.n_model_features = 512
     # self.n_model_features = 2048
     self.n_model_features = 8192
-
-    self.top_x = int(self.n_model_features * 0.3)
-
-    self.batch_size = 32
-
     # self.pretrained = False
-
     self.validation_freq = 50
 
 

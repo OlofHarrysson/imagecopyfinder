@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-from data import TripletDataset, CopyDataset, OnlineTransformDataset
-from torch.utils.data import DataLoader
+from data import setup_valdata
 import torch.nn.functional as F
 from torchvision.transforms.functional import to_pil_image, to_tensor
 import dataclasses
@@ -9,16 +8,10 @@ from dataclasses import dataclass
 from collections import OrderedDict, defaultdict
 
 class Validator():
-  def __init__(self, model, logger, config):
+  def __init__(self, model, logger, config, transformer):
     self.model, self.logger, self.config = model, logger, config
-
-    def collate(batch):
-      return batch[0]
-
-    index_file = f'{config.validation_dataset}/index.json'
-    # self.dataset = CopyDataset(index_file, config)
-    self.dataset = OnlineTransformDataset(config.validation_dataset)
-    self.dataloader = DataLoader(self.dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
+    self.dataloader = setup_valdata(config, transformer)
+    
 
   def validate(self, step):
     self.model.eval()
@@ -60,9 +53,8 @@ class Validator():
       im, im_type, match_id, im_id = data
       entry = Entry(im_type, match_id, im_id)
 
-      inp = to_tensor(im).unsqueeze(0)
       with torch.no_grad():
-        outp = self.model.predict_embedding(inp).cpu() # TODO: GPU?
+        outp = self.model.predict_embedding(im).cpu() # TODO: GPU?
 
       if im_type == 'query':
         query_embeddings[entry] = outp
@@ -70,23 +62,6 @@ class Validator():
         database_embeddings[entry] = outp
 
     return query_embeddings, database_embeddings
-
-  def save_matches(self, im_id_matches):
-    ''' Save best matches as a concatenated image '''
-    for query_id, db_id in im_id_matches:
-      query_im, *_ = self.dataset[query_id]
-      db_im, *_ = self.dataset[db_id]
-
-      min_size = min(min(query_im.size), min(db_im.size))
-      query_im.thumbnail((min_size, min_size))
-      db_im.thumbnail((min_size, min_size))
-      
-      query_im = squarify(query_im)
-      db_im = squarify(db_im)
-      im = torch.cat((query_im, db_im), dim=2)
-
-      concat_im = to_pil_image(im)
-      concat_im.save('output/%s.png' % query_id)
   
 
 def squarify(im):

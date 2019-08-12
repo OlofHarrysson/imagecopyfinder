@@ -1,7 +1,6 @@
 import torch, math, random
 from utils.utils import ProgressbarWrapper as Progressbar
-from data import TripletDataset
-from torch.utils.data import DataLoader
+from data import setup_traindata
 from triplet import create_triplets, create_doublets
 from logger import Logger
 from utils.validator import Validator
@@ -9,10 +8,9 @@ from transform import *
 from pathlib import Path
 import torchvision.transforms as transforms
 import numpy as np
+from torch.nn import TripletMarginLoss
 
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
-
-# TODO: Now the anchor+positive is the same all the time. What if we expand the number of fakes for more combinations?
 
 
 # TODO: After all conv2d layers, do adaptive pooling and continue with conv1d layers. At this point I don't care about spatial info anymore. Perhaps add a fc in after the adaptive pooling. But the reason is that conv layers use less parameters. Can try with fc layers as well.
@@ -29,7 +27,7 @@ def init_training(model, config):
   # TODO CyclicLR
   params = filter(lambda p: p.requires_grad, model.parameters())
   # optimizer = torch.optim.Adam(params, lr=config.start_lr)
-  optimizer = torch.optim.SGD(params, lr=config.start_lr)
+  optimizer = torch.optim.SGD(params, lr=config.start_lr, momentum=0.9)
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
 
   return optimizer, scheduler
@@ -39,38 +37,20 @@ def train(model, config):
   # clear_output_dir()
   optimizer, lr_scheduler = init_training(model, config)
   logger = Logger(config)
-  validator = Validator(model, logger, config)
-  # transformer = Transformer()
-  transformer = CropTransformer()
-  # transformer = FlipTransformer()
-  margin = 5
-  triplet_loss_fn = torch.nn.TripletMarginLoss(margin, p=config.distance_norm, swap=True)
-  cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1) # margin helps with separating the pos/neg in violin loss for fliptransformer. The negative tail is shorter.
-  similarity_loss_fn = torch.nn.BCELoss()
 
+  transformer = AllTransformer()
+  # transformer = CropTransformer()
+  # transformer = RotateTransformer()
+  # transformer = FlipTransformer()
+  validator = Validator(model, logger, config, transformer)
+
+  margin = 5
+  triplet_loss_fn = TripletMarginLoss(margin, p=config.distance_norm, swap=True)
+  cos_loss_fn = torch.nn.CosineEmbeddingLoss(margin=0.1) # margin helps with separating the pos/neg in violin loss for fliptransformer. The negative tail is shorter.
   # make own cosine loss which has positive margin. and another which has margin in both directions around 0
 
-  # change adaptive average pooling for that other one
-  # two stage network. First stage computes cosine similarity, second stage directly compares the top 10 results from the cosine similarity with similaritynet
-  # make sure that dont resize small side in transformer
-
   # Data
-  def collate(batch):
-    im_sizes = config.image_input_size
-    im_size = random.randint(im_sizes[0], im_sizes[1])
-    uniform_size = transforms.Compose([
-                       transforms.Resize((im_size, im_size)),
-                       transforms.ToTensor()
-    ])
-
-    original_ims = [uniform_size(b[0]) for b in batch]
-    transformed_ims = [uniform_size(b[1]) for b in batch]
-
-    return torch.stack(original_ims), torch.stack(transformed_ims)
-
-  batch_size = config.batch_size
-  dataset = TripletDataset(config.dataset, transformer)
-  dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers, collate_fn=collate)
+  dataloader = setup_traindata(config, transformer)
 
   # Init progressbar
   n_batches = len(dataloader)
@@ -97,19 +77,12 @@ def train(model, config):
       original, transformed = data
 
       inputs = torch.cat((original, transformed))
-
       outputs = model(inputs)
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
       
       # Triplet loss
       triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-
-      # Direct net loss
-      # a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
-      # net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
-      # net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
-      # net_loss = net_match_loss + net_not_match_loss
 
       # Cosine similarity loss
       y_size = anchors.size(0)
@@ -131,6 +104,7 @@ def train(model, config):
       logger.log_loss_percent(loss_dict, optim_steps)
       logger.log_corrects(corrects, optim_steps)
       logger.log_cosine(anchors, positives, negatives)
+      # logger.log_p(model.feature_extractor.pool.p, optim_steps)
       
       # Frees up GPU memory
       del data; del outputs

@@ -227,3 +227,20 @@ class Logger():
     )
 
     self.viz.plotlyplot(fig, win=title_text)
+
+
+  def log_p(self, p, step):
+    title_text = 'Generalized Mean Pooling'
+    fig = go.Figure()
+
+    p = p.detach().cpu().numpy()
+    violin_plot = lambda ys, name: go.Violin(y=ys,
+                            # box_visible=True,
+                            meanline_visible=True,
+                            spanmode='hard',
+                            x0='Pos/Neg',
+                            name=name,
+                            )
+
+    fig.add_trace(violin_plot(p, 'P-param'))
+    self.viz.plotlyplot(fig, win=title_text)

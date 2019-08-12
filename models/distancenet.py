@@ -6,6 +6,7 @@ from triplet import create_triplets, create_doublets
 from collections import defaultdict
 from .resnet import *
 from .resnet import BasicBlock
+from .pooling import *
 
 class DistanceNet(nn.Module):
   def __init__(self, config):
@@ -49,13 +50,18 @@ class FeatureExtractor(nn.Module):
     # for param in self.basenet.parameters():
     #   param.requires_grad = False
 
-    self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-    self.fc = nn.Linear(self.basenet.fc.in_features, config.n_model_features)
+    n_features = self.basenet.fc.in_features
+    # self.pool = nn.AdaptiveAvgPool2d((1, 1))
+    # self.fc = nn.Linear(n_features, config.n_model_features)
+    self.pool = AvgMaxPool()
+    # self.pool = GeneralizedMeanPoolingP()
+    # self.pool = GeneralizedMeanPoolingManyP(n_features, norm=1)
+    self.fc = nn.Linear(n_features*5, config.n_model_features)
 
 
   def forward(self, x):
     x = self.basenet(x)
-    x = self.avgpool(x)
+    x = self.pool(x)
     x = x.reshape(x.size(0), -1)
     x = self.fc(x)
     return x
@@ -86,7 +92,7 @@ class DistanceMeasurer():
     add_metric = lambda m: self.distance_metrics.append(m)
     add_metric(CosineSimilarity())
     # add_metric(EuclidianDistance1Norm())
-    add_metric(EuclidianDistance2Norm())
+    # add_metric(EuclidianDistance2Norm())
     # add_metric(EuclidianDistanceTopX(config.top_x))
     # add_metric(SimNet(sim_net))
 
