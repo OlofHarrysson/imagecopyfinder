@@ -8,6 +8,8 @@ def choose_config(config_str):
     config_obj = Laptop(config_str)
   elif config_str == 'colab':
     config_obj = Colab(config_str)
+  elif config_str == 'duplicate':
+    config_obj = Duplicate(config_str)
   else:
     raise NotImplementedError('Add your config class')
 

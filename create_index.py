@@ -142,11 +142,42 @@ def videopairs():
   index_path = str(dataset_root / 'index.json')
   return index, index_path
 
+
+def ukbench():
+  dataset_root = Path('datasets/ukbench')
+  query_dir = dataset_root / 'queries'
+  database_dir = dataset_root / 'database'
+
+  index = videopairs_format(dataset_root, query_dir, database_dir)
+  index_path = str(dataset_root / 'index.json')
+  return index, index_path
+
+def zubudbuild():
+  dataset_root = Path('datasets/zubudbuild')
+  query_dir = dataset_root / 'queries'
+  database_dir = dataset_root / 'database'
+
+  index = videopairs_format(dataset_root, query_dir, database_dir)
+  index_path = str(dataset_root / 'index.json')
+  return index, index_path
+
+def books():
+  dataset_root = Path('datasets/books')
+  query_dir = dataset_root / 'queries'
+  database_dir = dataset_root / 'database'
+
+  index = videopairs_format(dataset_root, query_dir, database_dir)
+  index_path = str(dataset_root / 'index.json')
+  return index, index_path
+
 def main():
   # index, index_path = copydays()
   # index, index_path = copydays_crop()
   # index, index_path = places365_val()
-  index, index_path = videopairs()
+  # index, index_path = videopairs()
+  # index, index_path = ukbench()
+  # index, index_path = zubudbuild()
+  index, index_path = books()
   
   with open(index_path, 'w') as outfile:
     json.dump(index, outfile, indent=2)

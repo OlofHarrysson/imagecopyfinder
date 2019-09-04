@@ -27,11 +27,14 @@ class DefaultConfig():
     # self.validation_dataset = 'datasets/copydays_crop'
     # self.validation_dataset = 'datasets/places365_crop'
     # self.validation_dataset = 'datasets/places365_flip'
-    # self.validation_dataset = 'datasets/places365/validation_val/original_src'
-    self.validation_dataset = 'datasets/copydays/original'
+    self.validation_dataset = 'datasets/places365/validation_val/original_src'
+    # self.validation_dataset = 'datasets/copydays/original'
     # self.validation_dataset = 'datasets/videopairs'
+    # self.validation_dataset = 'datasets/ukbench'
+    # self.validation_dataset = 'datasets/zubudbuild'
+    # self.validation_dataset = 'datasets/books'
 
-    self.n_model_features = 10
+    self.n_model_features = 512
 
     # Range of Data input size image sizes
     # self.image_input_size = (200, 500)
@@ -58,6 +61,9 @@ class DefaultConfig():
     # Seed to create reproducable training results
     self.seed = random.randint(0, 2**32 - 1)
 
+    self.model_path = None
+
+
 
   def get_parameters(self):
     return OrderedDict(sorted(vars(self).items()))
@@ -75,14 +81,15 @@ class Laptop(DefaultConfig):
      <_#_#_#_#_#_#_#_#_#_#_#_#_____/   \
     '''
     self.use_gpu = False
+    self.seed = 9
     self.image_input_size = (30, 35)
-    self.n_model_features = 3
+    # self.n_model_features = 3
     self.max_val_batches = 10
     self.batch_size = 16
 
     self.sample = True
     self.dataset = 'datasets/cifar_50'
-    self.seed = 9
+    self.model_path = None
 
 
 class Colab(DefaultConfig):
@@ -91,12 +98,31 @@ class Colab(DefaultConfig):
     self.num_workers = 16
     self.dataset = 'datasets/places365_big' # Without the places365 crop used for validation
 
-    # self.n_model_features = 512
-    # self.n_model_features = 2048
-    self.n_model_features = 8192
     # self.pretrained = False
     self.validation_freq = 50
+    self.model_path = None
 
 
+class Duplicate(DefaultConfig):
+  def __init__(self, config_str):
+    super().__init__(config_str)
+    self.use_gpu = False
+    # self.max_val_batches = 6
+    self.max_val_batches = 200
 
+    # self.model_path = 'saved/models/croprotate_notpretrained.pth'
+    # self.model_path = 'saved/models/croprotate_pretrained_550_model.pth'
+    # self.model_path = 'saved/models/alltransform_300_model.pth'
+    self.model_path = 'saved/models/alltransform_500_model.pth'
+    # self.model_path = 'saved/models/alltransform_3350_model.pth'
+    # self.model_path = 'saved/models/crop_6200_model.pth'
 
+    # self.validation_dataset = 'datasets/places365/validation_val/original_src'
+    # self.validation_dataset = 'datasets/copydays/original'
+    # self.validation_dataset = 'datasets/videopairs/src'
+    # self.validation_dataset = 'datasets/ukbench/src'
+    # self.validation_dataset = 'datasets/zubudbuild/src'
+    # self.validation_dataset = 'datasets/books/second'
+    self.validation_dataset = 'datasets/home/images'
+    
+    # self.pretrained = False

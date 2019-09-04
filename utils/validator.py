@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
 from data import setup_valdata
-import torch.nn.functional as F
-from torchvision.transforms.functional import to_pil_image, to_tensor
 import dataclasses
-from dataclasses import dataclass
 from collections import OrderedDict, defaultdict
+from models.dataclasses import Entry
 
 class Validator():
   def __init__(self, model, logger, config, transformer):
@@ -25,7 +23,6 @@ class Validator():
 
       # Query & database entry similarities
       similarity_dict = self.model.similarities(q_emb, database_embeddings)
-
       for metric_name, similarities in similarity_dict.items():
 
         # Finds best match & rank of the prediction
@@ -38,9 +35,11 @@ class Validator():
             break
 
     for metric_name, ranks in ranks_dict.items():
+      # Check whichever rank isn't 1 and log those data.
       self.logger.log_rank(ranks, step, metric_name)
       self.logger.log_accuracy(ranks, step, metric_name)
 
+    self.model.save(f'saved/models/{step}_model.pth')
     self.model.train()
 
   def calc_embeddings(self):
@@ -62,19 +61,3 @@ class Validator():
         database_embeddings[entry] = outp
 
     return query_embeddings, database_embeddings
-  
-
-def squarify(im):
-  im = to_tensor(im)
-  c, h, w = im.size()
-  if h > w:
-    padding = (h-w, 0, 0, 0)
-  else:
-    padding = (0, 0, w-h, 0)
-  return F.pad(im, padding)
-
-@dataclass(frozen=True, eq=True)
-class Entry:
-  im_type: str
-  match_id: int
-  im_id: int

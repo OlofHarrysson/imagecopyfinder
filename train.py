@@ -17,6 +17,9 @@ def main(config_str):
   config = choose_config(config_str)
   seed_program(config.seed)
   model = DistanceNet(config)
+  if config.model_path:
+    model.load(config.model_path)
+  
   train(model, config)
 
 if __name__ == '__main__':

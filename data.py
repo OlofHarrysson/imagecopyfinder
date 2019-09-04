@@ -29,9 +29,9 @@ def setup_traindata(config, transformer):
 
   batch_size = config.batch_size
   dataset = TripletDataset(config.dataset, transformer)
-  return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers, collate_fn=collate)
+  return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=config.num_workers, collate_fn=collate, drop_last=True)
 
-def setup_valdata(config, transformer):
+def setup_valdata(config, transformer=None):
   normalize = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -44,9 +44,26 @@ def setup_valdata(config, transformer):
     return item
 
   index_file = f'{config.validation_dataset}/index.json'
-  # self.dataset = CopyDataset(index_file, config)
+  # dataset = CopyDataset(index_file, config)
   dataset = OnlineTransformDataset(config.validation_dataset, transformer)
   return DataLoader(dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
+
+def setup_duplicatedata(config):
+  normalize = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])
+    ])
+
+  def collate(batch):
+    item = list(batch[0])
+    item[0] = normalize(item[0]).unsqueeze(0)
+    return item
+
+  dataset = ImageDataset(config.validation_dataset)
+  dataloader =  DataLoader(dataset, batch_size=1, collate_fn=collate, num_workers=config.num_workers)
+  return dataset, dataloader
+
 
 class TripletDataset(Dataset):
   def __init__(self, im_dirs, transform, n_fakes=1):
@@ -116,6 +133,32 @@ class CopyDataset(Dataset):
     return uniform_size(im), data['im_type'], data['match_id'], data['im_id']
     # return im, data['im_type'], data['match_id'], data['im_id']
 
+class ImageDataset(Dataset):
+  def __init__(self, im_dirs):
+    self.image_files = []
+    im_types = ['.jpg', '.png']
+    is_image = lambda path: path.suffix in im_types
+
+    if type(im_dirs) == str:
+      im_dirs = [im_dirs]
+
+    for im_dir in im_dirs:
+      assert Path(im_dir).exists(), "Directory doesn't exist"
+      image_files = [f for f in Path(im_dir).glob('**/*') if is_image(f)]
+      self.image_files.extend(image_files)
+
+    assert self.image_files,'{} dataset is empty'.format(im_dir)
+
+  def __len__(self):
+    return len(self.image_files)
+
+  def __getitem__(self, index):
+    path = self.image_files[index]
+    im = Image.open(path)
+    im = im.convert('RGB')
+
+    uniform_size = transforms.Resize((300, 300))
+    return uniform_size(im), None, None, index
 
 class OnlineTransformDataset(Dataset):
   def __init__(self, im_folder, transformer):
@@ -161,16 +204,16 @@ if __name__ == '__main__':
   viz = visdom.Visdom(port='6006')
   clear_envs(viz)
 
-  transformer = AllTransformer()
-  # transformer = CropTransformer()
-  # transformer = FlipTransformer()
+  # transformer = AllTransformer()
+  transformer = CropTransformer()
+  # transformer = RotateTransformer()
+  # transformer = JpgTransformer()
   # config = choose_config('laptop')
   config = choose_config('colab')
   
   # data_path = 'datasets/copydays/original'
   data_path = 'datasets/places365/validation'
   dataset = TripletDataset(data_path, transformer)
-
 
   data_inds = list(range(len(dataset)))
   random.shuffle(data_inds)

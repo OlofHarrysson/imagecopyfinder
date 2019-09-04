@@ -38,7 +38,6 @@ class GeneralizedMeanPooling(Module):
             + 'output_size=' + str(self.output_size) + ')'
 
 
-
 class GeneralizedMeanPoolingP(GeneralizedMeanPooling):
     """ Same, but norm is trainable
     """
@@ -61,6 +60,7 @@ class GeneralizedMeanPoolingManyP(GeneralizedMeanPooling):
 
 
 class AvgMaxPool(Module):
+  # TODO: We can make it so that we have several output sizes. 1 == filter makes one activations per map, 2,2 makes it 4, etc.
   def __init__(self, output_size=1):
     super().__init__()
     self.output_size = output_size
@@ -74,13 +74,4 @@ class AvgMaxPool(Module):
     for pool in self.mean_pools:
       x3 = torch.cat((x3, pool(x)), dim=1)
 
-    # print(self.mean_pools)
-    # qwe
-
-    # x4 = F.lp_pool2d(x, 3, 3)
-    # print("oyoyoy")
-    # print(f'x shape: {x.shape}')
-    # print(f'x4 shape: {x4.shape}')
-    # print(f'x3 shape: {x3.shape}')
-    # qwe
     return x3

@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from utils.utils import EMAverage
-from models.distancenet import CosineSimilarity
+from models.metrics import CosineSimilarity
 import plotly.graph_objects as go
 
 def clear_envs(viz):
@@ -228,6 +228,20 @@ class Logger():
 
     self.viz.plotlyplot(fig, win=title_text)
 
+  def log_violin(self, data, title):
+    fig = go.Figure()
+
+    violin_plot = lambda ys, name: go.Violin(y=ys,
+                            # box_visible=True,
+                            meanline_visible=True,
+                            spanmode='hard',
+                            x0='Mydata',
+                            name=name,
+                            )
+
+    fig.add_trace(violin_plot(data, title))
+    self.viz.plotlyplot(fig, win=title)
+
 
   def log_p(self, p, step):
     title_text = 'Generalized Mean Pooling'
@@ -244,3 +258,49 @@ class Logger():
 
     fig.add_trace(violin_plot(p, 'P-param'))
     self.viz.plotlyplot(fig, win=title_text)
+
+
+  def log_image(self, image, caption):
+    opts=dict(title=f'image_{caption}')
+    self.viz.image(image, opts=opts)
+
+  def log_weights(self, weights):
+    title = 'weights'
+    data = weights.cpu().squeeze().detach().numpy()
+    fig = go.Figure()
+
+    violin_plot = lambda ys, name: go.Violin(y=ys,
+                            # box_visible=True,
+                            meanline_visible=True,
+                            spanmode='hard',
+                            x0='Similarity Weights',
+                            name=name,
+                            )
+
+    fig.add_trace(violin_plot(data, 'Similarity Weights'))
+    self.viz.plotlyplot(fig, win=title)
+
+    # Weights
+    self.viz.line(
+      Y=data,
+      X=np.array(range(len(data))),
+      win='line sim weights',
+      opts=dict(
+          xlabel='Steps',
+          ylabel='Percentage',
+          title=title,
+      )
+    )
+
+    # Sorted weights
+    sorted_data, inds = torch.sort(weights, descending=True)
+    self.viz.line(
+      Y=sorted_data.cpu().squeeze().detach().numpy(),
+      X=np.array(range(len(data))),
+      win='line sim weights sorted',
+      opts=dict(
+          xlabel='Steps',
+          ylabel='Percentage',
+          title='Sorted Similarity Weights',
+      )
+    )

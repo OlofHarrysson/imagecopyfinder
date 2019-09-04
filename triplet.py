@@ -4,6 +4,7 @@ import torch
 # TODO: How many positive example and how many negatives ratio?
 
 def create_triplets(originals, transformed):
+  ''' Create input images, transformed images, and then negatives as both transformed negatives and non-transformed negatives '''
   batch_size = originals.size(0)
   n_repeat = (batch_size - 1) * 2
 
