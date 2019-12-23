@@ -102,6 +102,12 @@ class Colab(DefaultConfig):
     self.validation_freq = 50
     self.model_path = None
 
+    # For direct net loss
+    self.start_lr = 1e-2
+    self.end_lr = 1e-2
+    self.optim_steps = 40000
+
+
 
 class Duplicate(DefaultConfig):
   def __init__(self, config_str):

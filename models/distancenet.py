@@ -14,8 +14,9 @@ class DistanceNet(nn.Module):
   def __init__(self, config):
     super().__init__()
     self.device = 'cuda' if config.use_gpu else 'cpu'
+    self.similarity_net = SimilarityNet(config)
     self.feature_extractor = FeatureExtractor(config, self.device)
-    self.distance_measurer = DistanceMeasurer(config, self.feature_extractor)
+    self.distance_measurer = DistanceMeasurer(config, self.feature_extractor, self.similarity_net)
 
   def forward(self, inputs):
     inputs = inputs.to(self.device)
@@ -63,11 +64,11 @@ class FeatureExtractor(nn.Module):
     #   param.requires_grad = False
 
     n_features = self.basenet.fc.in_features
-    # self.pool = nn.AdaptiveAvgPool2d((1, 1))
-    self.pool = nn.AdaptiveMaxPool2d((1, 1))
+    self.pool = nn.AdaptiveAvgPool2d((1, 1))
+    # self.pool = nn.AdaptiveMaxPool2d((1, 1))
     # self.pool = GeneralizedMeanPoolingManyP(n_features)
 
-    self.sim_weights = nn.Parameter(torch.ones(1, n_features))
+    # self.sim_weights = nn.Parameter(torch.ones(1, n_features))
     # exp = torch.tensor(np.exp(-np.linspace(0, 0.5, num=n_features))).float()
     # self.sim_weights = nn.Parameter(exp)
 
@@ -80,6 +81,22 @@ class FeatureExtractor(nn.Module):
     x = self.pool(x)
     x = x.reshape(x.size(0), -1)
     x = self.fc(x)
-    x = F.normalize(x, p=2)
+    # x = F.normalize(x, p=2)
     return x
 
+class SimilarityNet(nn.Module):
+  def __init__(self, config):
+    super().__init__()
+    self.device = 'cuda' if config.use_gpu else 'cpu'
+    n_features = config.n_model_features
+    self.fc1 = nn.Linear(2 * n_features, n_features)
+    self.fc2 = nn.Linear(n_features, n_features)
+    self.fc3 = nn.Linear(n_features, n_features)
+    self.end = nn.Linear(n_features, 1)
+
+  def forward(self, inputs):
+    x = inputs.to(self.device)
+    x = F.leaky_relu(self.fc1(x))
+    x = F.leaky_relu(self.fc2(x))
+    x = F.leaky_relu(self.fc3(x))
+    return torch.sigmoid(self.end(x))

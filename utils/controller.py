@@ -57,7 +57,8 @@ def train(model, config):
   triplet_loss_fn = TripletMarginLoss(margin, p=config.distance_norm, swap=True)
   neg_cos_loss_fn = ZeroCosineLoss(margin=0.1)
   pos_cos_loss_fn = PositiveCosineLoss(margin=0.1)
-
+  similarity_loss_fn = torch.nn.BCELoss()
+  
   # Data
   dataloader = setup_traindata(config, transformer)
 
@@ -92,15 +93,22 @@ def train(model, config):
       
       # Triplet loss
       # triplet_loss = triplet_loss_fn(anchors, positives, negatives)
-      anchors, positives = scale_embeddings(anchors, positives, model)
-      anchors, negatives = scale_embeddings(anchors, negatives, model)
+      # anchors, positives = scale_embeddings(anchors, positives, model)
+      # anchors, negatives = scale_embeddings(anchors, negatives, model)
 
       # Cosine similarity loss
-      cos_match_loss = pos_cos_loss_fn(anchors, positives)
-      cos_not_match_loss = neg_cos_loss_fn(anchors, negatives)
+      # cos_match_loss = pos_cos_loss_fn(anchors, positives)
+      # cos_not_match_loss = neg_cos_loss_fn(anchors, negatives)
+
+      # Direct net loss
+      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
+      net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
+      # net_loss = net_match_loss + net_not_match_loss
 
       # loss_dict = dict(triplet=triplet_loss, cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
-      loss_dict = dict(cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
+      # loss_dict = dict(cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
+      loss_dict = dict(direct_match=net_match_loss, direct_not_match=net_not_match_loss)
 
       loss = sum(loss_dict.values())
       loss.backward()
@@ -114,7 +122,7 @@ def train(model, config):
       logger.log_corrects(corrects, optim_steps)
       logger.log_cosine(anchors, positives, negatives)
       # logger.log_p(model.feature_extractor.pool.p, optim_steps)
-      logger.log_weights(model.feature_extractor.sim_weights)
+      # logger.log_weights(model.feature_extractor.sim_weights)
 
       
       # Frees up GPU memory

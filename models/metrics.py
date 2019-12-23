@@ -2,20 +2,21 @@ import torchvision.models as models
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# from triplet import create_triplets, create_doublets
-# from collections import defaultdict
+from triplet import create_triplets, create_doublets
+from collections import defaultdict
 import numpy as np
 
 
 class DistanceMeasurer():
-  def __init__(self, config, model):
+  def __init__(self, config, feature_extractor, similarity_net):
     self.distance_metrics = []
     add_metric = lambda m: self.distance_metrics.append(m)
     add_metric(CosineSimilarity())
+    add_metric(SimNet(similarity_net))
     # add_metric(EuclidianDistance1Norm())
     # add_metric(EuclidianDistance2Norm())
     # add_metric(EuclidianDistanceTopX(config.top_x))
-    add_metric(Weighted(model))
+    # add_metric(Weighted(feature_extractor))
 
   def calc_similarities(self, query_emb, database):
     ''' Returns similarities, a dict with 1-dim tensors for query to all in database '''
@@ -117,7 +118,7 @@ class SimNet(SimilarityMetric):
 
   @assert_range
   def __call__(self, query_emb, db_emb):
-    embs = torch.cat((db_emb, query_emb), dim=1)
+    embs = torch.cat((db_emb, query_emb), dim=1) # cat in same order as we train in
     self.model.eval()
     with torch.no_grad():
       outs = self.model(embs).squeeze()
