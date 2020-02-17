@@ -2,6 +2,7 @@ import pyjokes, random
 from datetime import datetime as dtime
 from collections import OrderedDict
 
+
 class DefaultConfig():
   def __init__(self, config_str):
     # ~~~~~~~~~~~~~~ General Parameters ~~~~~~~~~~~~~~
@@ -20,7 +21,7 @@ class DefaultConfig():
     self.num_workers = 0
 
     # The config name
-    self.config = config_str 
+    self.config = config_str
 
     self.dataset = 'datasets/cifar_bigger'
 
@@ -38,9 +39,10 @@ class DefaultConfig():
 
     # Range of Data input size image sizes
     # self.image_input_size = (200, 500)
-    self.image_input_size = (300, 300)
+    # self.image_input_size = (300, 300)
+    self.image_input_size = (64, 64)
 
-    # self.validation_im_size = 
+    # self.validation_im_size =
 
     self.batch_size = 32
 
@@ -63,14 +65,13 @@ class DefaultConfig():
 
     self.model_path = None
 
-
-
   def get_parameters(self):
     return OrderedDict(sorted(vars(self).items()))
 
-  def __str__(self): # TODO return str
+  def __str__(self):  # TODO return str
     # class name, etc
     return str(vars(self))
+
 
 class Laptop(DefaultConfig):
   def __init__(self, config_str):
@@ -82,13 +83,16 @@ class Laptop(DefaultConfig):
     '''
     self.use_gpu = False
     self.seed = 9
-    self.image_input_size = (30, 35)
+    self.image_input_size = (64, 64)
     # self.n_model_features = 3
-    self.max_val_batches = 10
-    self.batch_size = 16
+    self.max_val_batches = 3
+    # self.batch_size = 16
+    self.batch_size = 256
 
-    self.sample = True
-    self.dataset = 'datasets/cifar_50'
+    # self.sample = True
+    # self.dataset = 'datasets/cifar_50'
+    self.dataset = 'datasets/places365'
+
     self.model_path = None
 
 
@@ -96,7 +100,7 @@ class Colab(DefaultConfig):
   def __init__(self, config_str):
     super().__init__(config_str)
     self.num_workers = 16
-    self.dataset = 'datasets/places365_big' # Without the places365 crop used for validation
+    self.dataset = 'datasets/places365_big'  # Without the places365 crop used for validation
 
     # self.pretrained = False
     self.validation_freq = 50
@@ -106,7 +110,6 @@ class Colab(DefaultConfig):
     self.start_lr = 1e-2
     self.end_lr = 1e-2
     self.optim_steps = 40000
-
 
 
 class Duplicate(DefaultConfig):
@@ -130,5 +133,5 @@ class Duplicate(DefaultConfig):
     # self.validation_dataset = 'datasets/zubudbuild/src'
     # self.validation_dataset = 'datasets/books/second'
     self.validation_dataset = 'datasets/home/images'
-    
+
     # self.pretrained = False

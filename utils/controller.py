@@ -11,32 +11,52 @@ import numpy as np
 from torch.nn import TripletMarginLoss
 from utils.loss import PositiveCosineLoss, ZeroCosineLoss
 
+# Idea, could do several forward passes before one backward pass. Since the number of comparisons grow exponentially, this migh work well with the triplet training. Could also start with a low image size to fit more into one batch -> and then just finetune on bigger image sizes.
+
 # TODO: Can have a prepare data colab file that prepares the data and puts it in gdrive. It could download a dataset online. Then a user can upload its dataset to his/hers gdrive. Would be able to run the project from any computer without installation
+
 
 def clear_output_dir():
   [p.unlink() for p in Path('output').iterdir()]
 
+
 def init_training(model, config):
-  torch.backends.cudnn.benchmark = True # Optimizes cudnn
-  model.to(model.device) # model -> CPU/GPU
+  torch.backends.cudnn.benchmark = True  # Optimizes cudnn
+  model.to(model.device)  # model -> CPU/GPU
 
   # Optimizer & Scheduler
   # TODO CyclicLR
   # params = filter(lambda p: p.requires_grad, model.parameters())
 
   my_list = ['feature_extractor.sim_weights']
-  weight_params = [kv[1] for kv in model.named_parameters() if kv[0] in my_list]
-  base_params = [kv[1] for kv in model.named_parameters() if kv[0] not in my_list]
+  weight_params = [
+    kv[1] for kv in model.named_parameters() if kv[0] in my_list
+  ]
+  base_params = [
+    kv[1] for kv in model.named_parameters() if kv[0] not in my_list
+  ]
 
-  optimizer = torch.optim.SGD([
-    {'params': weight_params, 'lr': 5e-1},
-    {'params': base_params},
-
-    ], lr=config.start_lr, momentum=0.9)
-  # optimizer = torch.optim.SGD(params, lr=config.start_lr, momentum=0.9)
-  scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.optim_steps/config.lr_step_frequency, eta_min=config.end_lr)
+  # optimizer = torch.optim.SGD([
+  #   {
+  #     'params': weight_params,
+  #     'lr': 5e-1
+  #   },
+  #   {
+  #     'params': base_params
+  #   },
+  # ],
+  #                             lr=config.start_lr,
+  #                             momentum=0.9)
+  optimizer = torch.optim.SGD(model.parameters(),
+                              lr=config.start_lr,
+                              momentum=0.9)
+  scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+    optimizer,
+    T_max=config.optim_steps / config.lr_step_frequency,
+    eta_min=config.end_lr)
 
   return optimizer, scheduler
+
 
 def train(model, config):
   # clear_output_dir()
@@ -54,11 +74,13 @@ def train(model, config):
   validator = Validator(model, logger, config, transformer)
 
   margin = 5
-  triplet_loss_fn = TripletMarginLoss(margin, p=config.distance_norm, swap=True)
+  triplet_loss_fn = TripletMarginLoss(margin,
+                                      p=config.distance_norm,
+                                      swap=True)
   neg_cos_loss_fn = ZeroCosineLoss(margin=0.1)
   pos_cos_loss_fn = PositiveCosineLoss(margin=0.1)
   similarity_loss_fn = torch.nn.BCELoss()
-  
+
   # Data
   dataloader = setup_traindata(config, transformer)
 
@@ -76,8 +98,9 @@ def train(model, config):
       pbar.update(epoch, batch_i)
 
       # Validation
-      if optim_steps % val_freq == 0:
-        validator.validate(optim_steps)
+      # if optim_steps % val_freq == 0:
+      #   validator.validate(optim_steps)
+      print("START")
 
       # Decrease learning rate
       if optim_steps % config.lr_step_frequency == 0:
@@ -90,9 +113,10 @@ def train(model, config):
       outputs = model(inputs)
       original_emb, transf_emb = outputs
       anchors, positives, negatives = create_triplets(original_emb, transf_emb)
-      
+      print(anchors.shape)
+
       # Triplet loss
-      # triplet_loss = triplet_loss_fn(anchors, positives, negatives)
+      triplet_loss = triplet_loss_fn(anchors, positives, negatives)
       # anchors, positives = scale_embeddings(anchors, positives, model)
       # anchors, negatives = scale_embeddings(anchors, negatives, model)
 
@@ -101,14 +125,16 @@ def train(model, config):
       # cos_not_match_loss = neg_cos_loss_fn(anchors, negatives)
 
       # Direct net loss
-      a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
-      net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
-      net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
+      # a_p, a_n = model.cc_similarity_net(anchors, positives, negatives)
+      # net_match_loss = similarity_loss_fn(a_p, torch.ones_like(a_p))
+      # net_not_match_loss = similarity_loss_fn(a_n, torch.zeros_like(a_n))
       # net_loss = net_match_loss + net_not_match_loss
 
       # loss_dict = dict(triplet=triplet_loss, cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
       # loss_dict = dict(cos_pos=cos_match_loss, cos_neg=cos_not_match_loss)
-      loss_dict = dict(direct_match=net_match_loss, direct_not_match=net_not_match_loss)
+      loss_dict = dict(triplet_loss=triplet_loss)
+      # loss_dict = dict(direct_match=net_match_loss,
+      #                  direct_not_match=net_not_match_loss)
 
       loss = sum(loss_dict.values())
       loss.backward()
@@ -124,9 +150,9 @@ def train(model, config):
       # logger.log_p(model.feature_extractor.pool.p, optim_steps)
       # logger.log_weights(model.feature_extractor.sim_weights)
 
-      
       # Frees up GPU memory
-      del data; del outputs
+      del data
+      del outputs
 
 
 def scale_embeddings(embs1, embs2, model):
@@ -136,7 +162,7 @@ def scale_embeddings(embs1, embs2, model):
 
   diff = torch.abs(embs1 - embs2)
   sort_vals, sort_inds = torch.sort(diff)
-  
+
   sort_inds = sort_inds.view((1, -1))
   weights = model.feature_extractor.sim_weights.view((1, -1))
 
@@ -147,6 +173,7 @@ def scale_embeddings(embs1, embs2, model):
   s_db = s_weights * embs2
 
   return s_q, s_db
+
 
 if __name__ == '__main__':
   train()

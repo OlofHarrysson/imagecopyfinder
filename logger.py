@@ -6,9 +6,11 @@ from utils.utils import EMAverage
 from models.metrics import CosineSimilarity
 import plotly.graph_objects as go
 
+
 def clear_envs(viz):
-  [viz.close(env=env) for env in viz.get_env_list()] # Kills wind
+  [viz.close(env=env) for env in viz.get_env_list()]  # Kills wind
   # [viz.delete_env(env) for env in viz.get_env_list()] # Kills envs
+
 
 class Logger():
   def __init__(self, config):
@@ -36,42 +38,36 @@ class Logger():
 
     easy = a_to_p + margin < a_to_n
     hard = a_to_p > a_to_n
-    semi_hard = torch.ones_like(easy) - (easy + hard)
+    semi_hard = torch.ones_like(easy) ^ (easy + hard)
 
     n_comp = easy.size(0)
     ee = easy.sum(dtype=torch.float32) / n_comp
     hh = hard.sum(dtype=torch.float32) / n_comp
     sh = semi_hard.sum(dtype=torch.float32) / n_comp
 
-    Y = torch.Tensor([ee, ee+sh, ee+sh+hh]).numpy()
-    self.viz.line(
-      Y=Y.reshape((1, 3)),
-      X=[step],
-      update='append',
-      win='TripletDifficulty',
-      opts=dict(
-          fillarea=True,
-          xlabel='Steps',
-          ylabel='Percentage',
-          title='Example Difficulty',
-          stackgroup='one',
-          legend=['Easy', 'Semi', 'Hard']
-      )
-    )
+    Y = torch.Tensor([ee, ee + sh, ee + sh + hh]).numpy()
+    self.viz.line(Y=Y.reshape((1, 3)),
+                  X=[step],
+                  update='append',
+                  win='TripletDifficulty',
+                  opts=dict(fillarea=True,
+                            xlabel='Steps',
+                            ylabel='Percentage',
+                            title='Example Difficulty',
+                            stackgroup='one',
+                            legend=['Easy', 'Semi', 'Hard']))
 
     n_not_easy = hard.sum() + semi_hard.sum()
-    self.viz.line(
-      Y=[n_not_easy.item()],
-      X=[step],
-      update='append',
-      win='Examples_loss',
-      opts=dict(
-          fillarea=True,
-          xlabel='Steps',
-          ylabel='Number of Examples',
-          title='#Examples with Loss',
-      )
-    )
+    self.viz.line(Y=[n_not_easy.item()],
+                  X=[step],
+                  update='append',
+                  win='Examples_loss',
+                  opts=dict(
+                    fillarea=True,
+                    xlabel='Steps',
+                    ylabel='Number of Examples',
+                    title='#Examples with Loss',
+                  ))
 
   def log_accuracy(self, ranks, step, name):
     n_ranks = len(ranks)
@@ -83,46 +79,38 @@ class Logger():
       Y=Y,
       X=[step],
       update='append',
-      win='Accuracy'+name,
+      win='Accuracy' + name,
       opts=dict(
-          xlabel='Steps',
-          ylabel='Accuracy',
-          title=f'Val Accuracy {name}',
-          # ytickmin = 0,
-          # ytickmax = 1,
-          legend=['Top1', 'Top2', 'Top3', 'Top5'],
-      )
-    )
+        xlabel='Steps',
+        ylabel='Accuracy',
+        title=f'Val Accuracy {name}',
+        # ytickmin = 0,
+        # ytickmax = 1,
+        legend=['Top1', 'Top2', 'Top3', 'Top5'],
+      ))
 
   def log_rank(self, ranks, step, name):
     # TODO: Output some kind of mean for the distro?
 
     # Bins several values together when there are a lot of ranks
-    self.viz.histogram(
-      X=[ranks],
-      win='Rank'+name,
-      opts=dict(
-          xlabel='Rank',
-          ylabel='Number of Predictions',
-          title=f'~Validation Rank {name}',
-      )
-    )
+    self.viz.histogram(X=[ranks],
+                       win='Rank' + name,
+                       opts=dict(
+                         xlabel='Rank',
+                         ylabel='Number of Predictions',
+                         title=f'~Validation Rank {name}',
+                       ))
 
   def log_loss(self, loss, step):
     Y = torch.Tensor([loss]).numpy()
-    self.viz.line(
-      Y=Y.reshape((1,1)),
-      X=[step],
-      update='append',
-      win='TotalLoss',
-      opts=dict(
-          xlabel='Steps',
-          ylabel='Loss',
-          title='Training Loss',
-          legend=['Total']
-
-      )
-    )
+    self.viz.line(Y=Y.reshape((1, 1)),
+                  X=[step],
+                  update='append',
+                  win='TotalLoss',
+                  opts=dict(xlabel='Steps',
+                            ylabel='Loss',
+                            title='Training Loss',
+                            legend=['Total']))
 
   def log_loss_percent(self, loss_dict, step):
     if self.loss_percent_average == None:
@@ -142,20 +130,16 @@ class Logger():
       Y.append((temp_loss + loss) / tot_loss)
       temp_loss += loss
 
-    self.viz.line(
-      Y=np.array(Y).reshape(1, -1),
-      X=[step],
-      update='append',
-      win='losspercent',
-      opts=dict(
-          fillarea=True,
-          xlabel='Steps',
-          ylabel='Percentage',
-          title='Loss Percentage',
-          stackgroup='one',
-          legend=legend
-      )
-    )
+    self.viz.line(Y=np.array(Y).reshape(1, -1),
+                  X=[step],
+                  update='append',
+                  win='losspercent',
+                  opts=dict(fillarea=True,
+                            xlabel='Steps',
+                            ylabel='Percentage',
+                            title='Loss Percentage',
+                            stackgroup='one',
+                            legend=legend))
 
   def log_corrects(self, corrects, step):
     if self.corrects_average == None:
@@ -169,20 +153,18 @@ class Logger():
       accuracies.append(acc)
 
     Y = np.array(accuracies).reshape((1, -1))
-    self.viz.line(
-      Y=Y,
-      X=[step],
-      update='append',
-      win='Distance Accuracy',
-      opts=dict(
-          xlabel='Steps',
-          ylabel='Top-1 Accuracy',
-          title=f'Distance Accuracy',
-          ytickmin = 0,
-          ytickmax = 1,
-          legend=metrics,
-      )
-    )
+    self.viz.line(Y=Y,
+                  X=[step],
+                  update='append',
+                  win='Distance Accuracy',
+                  opts=dict(
+                    xlabel='Steps',
+                    ylabel='Top-1 Accuracy',
+                    title=f'Distance Accuracy',
+                    ytickmin=0,
+                    ytickmax=1,
+                    legend=metrics,
+                  ))
 
   def log_cosine(self, anchors, positives, negatives):
     metric = CosineSimilarity()
@@ -195,73 +177,71 @@ class Logger():
     title_text = 'Cosine Distance'
     fig = go.Figure()
 
-    violin_plot = lambda ys, side, name: go.Violin(y=ys,
-                            # box_visible=True,
-                            meanline_visible=True,
-                            spanmode='hard',
-                            side=side,
-                            x0='Pos/Neg',
-                            name=name,
-                            )
+    violin_plot = lambda ys, side, name: go.Violin(
+      y=ys,
+      # box_visible=True,
+      meanline_visible=True,
+      spanmode='hard',
+      side=side,
+      x0='Pos/Neg',
+      name=name,
+    )
 
     fig.add_trace(violin_plot(pos_sim, 'negative', 'Positives'))
     fig.add_trace(violin_plot(neg_sim, 'positive', 'Negatives'))
     # TODO: Visdom doesn't work with title in layout
 
-    fig.update_layout(
-      shapes=[
-        # Line Horizontal
-        go.layout.Shape(
-          type="line",
-          x0=-0.5,
-          y0=0.75,
-          x1=0.5,
-          y1=0.75,
-          line=dict(
-            width=2,
-            dash="dot",
-          ),
+    fig.update_layout(shapes=[
+      # Line Horizontal
+      go.layout.Shape(
+        type="line",
+        x0=-0.5,
+        y0=0.75,
+        x1=0.5,
+        y1=0.75,
+        line=dict(
+          width=2,
+          dash="dot",
         ),
-          
-      ]
-    )
+      ),
+    ])
 
     self.viz.plotlyplot(fig, win=title_text)
 
   def log_violin(self, data, title):
     fig = go.Figure()
 
-    violin_plot = lambda ys, name: go.Violin(y=ys,
-                            # box_visible=True,
-                            meanline_visible=True,
-                            spanmode='hard',
-                            x0='Mydata',
-                            name=name,
-                            )
+    violin_plot = lambda ys, name: go.Violin(
+      y=ys,
+      # box_visible=True,
+      meanline_visible=True,
+      spanmode='hard',
+      x0='Mydata',
+      name=name,
+    )
 
     fig.add_trace(violin_plot(data, title))
     self.viz.plotlyplot(fig, win=title)
-
 
   def log_p(self, p, step):
     title_text = 'Generalized Mean Pooling'
     fig = go.Figure()
 
     p = p.detach().cpu().numpy()
-    violin_plot = lambda ys, name: go.Violin(y=ys,
-                            # box_visible=True,
-                            meanline_visible=True,
-                            spanmode='hard',
-                            x0='Pos/Neg',
-                            name=name,
-                            )
+    violin_plot = lambda ys, name: go.Violin(
+      y=ys,
+      # box_visible=True,
+      meanline_visible=True,
+      spanmode='hard',
+      x0='Pos/Neg',
+      name=name,
+    )
 
     fig.add_trace(violin_plot(p, 'P-param'))
     self.viz.plotlyplot(fig, win=title_text)
 
-
   def log_image(self, image, caption):
-    opts=dict(title=f'image_{caption}')
+    opts = dict(title=f'image_{caption}')
     self.viz.image(image, opts=opts)
 
   def log_weights(self, weights):
@@ -269,38 +249,35 @@ class Logger():
     data = weights.cpu().squeeze().detach().numpy()
     fig = go.Figure()
 
-    violin_plot = lambda ys, name: go.Violin(y=ys,
-                            # box_visible=True,
-                            meanline_visible=True,
-                            spanmode='hard',
-                            x0='Similarity Weights',
-                            name=name,
-                            )
+    violin_plot = lambda ys, name: go.Violin(
+      y=ys,
+      # box_visible=True,
+      meanline_visible=True,
+      spanmode='hard',
+      x0='Similarity Weights',
+      name=name,
+    )
 
     fig.add_trace(violin_plot(data, 'Similarity Weights'))
     self.viz.plotlyplot(fig, win=title)
 
     # Weights
-    self.viz.line(
-      Y=data,
-      X=np.array(range(len(data))),
-      win='line sim weights',
-      opts=dict(
-          xlabel='Steps',
-          ylabel='Percentage',
-          title=title,
-      )
-    )
+    self.viz.line(Y=data,
+                  X=np.array(range(len(data))),
+                  win='line sim weights',
+                  opts=dict(
+                    xlabel='Steps',
+                    ylabel='Percentage',
+                    title=title,
+                  ))
 
     # Sorted weights
     sorted_data, inds = torch.sort(weights, descending=True)
-    self.viz.line(
-      Y=sorted_data.cpu().squeeze().detach().numpy(),
-      X=np.array(range(len(data))),
-      win='line sim weights sorted',
-      opts=dict(
-          xlabel='Steps',
-          ylabel='Percentage',
-          title='Sorted Similarity Weights',
-      )
-    )
+    self.viz.line(Y=sorted_data.cpu().squeeze().detach().numpy(),
+                  X=np.array(range(len(data))),
+                  win='line sim weights sorted',
+                  opts=dict(
+                    xlabel='Steps',
+                    ylabel='Percentage',
+                    title='Sorted Similarity Weights',
+                  ))

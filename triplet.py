@@ -3,6 +3,7 @@ import torch
 
 # TODO: How many positive example and how many negatives ratio?
 
+
 def create_triplets(originals, transformed):
   ''' Create input images, transformed images, and then negatives as both transformed negatives and non-transformed negatives '''
   batch_size = originals.size(0)
@@ -11,12 +12,13 @@ def create_triplets(originals, transformed):
   anchors = originals.repeat_interleave(n_repeat, dim=0)
   positives = transformed.repeat_interleave(n_repeat, dim=0)
 
-  mask = [i for i in range(batch_size**2) if i%(batch_size+1) != 0]
+  mask = [i for i in range(batch_size**2) if i % (batch_size + 1) != 0]
   n1 = transformed.repeat(n_repeat + 1, 1)[mask]
   n2 = originals.repeat(n_repeat + 1, 1)[mask]
   negatives = torch.stack((n1, n2), dim=1).view(-1, anchors.size(1))
 
   return anchors, positives, negatives
+
 
 def create_doublets(embeddings):
   batch_size = embeddings.size(0)
@@ -25,7 +27,7 @@ def create_doublets(embeddings):
   anchors = embeddings.repeat_interleave(n_repeat, dim=0)
   negatives = embeddings.repeat(n_repeat + 1, 1)
 
-  mask = [i for i in range(batch_size**2) if i%(batch_size+1) != 0]
+  mask = [i for i in range(batch_size**2) if i % (batch_size + 1) != 0]
   negatives = negatives[mask]
 
   doublet = torch.cat((anchors, negatives), dim=1)
@@ -33,9 +35,9 @@ def create_doublets(embeddings):
 
 
 def test():
-  b_size = 8
-  batch = range(1, b_size+1)
-  batch2 = [b+.5 for b in batch]
+  b_size = 128
+  batch = range(1, b_size + 1)
+  batch2 = [b + .5 for b in batch]
 
   a = torch.tensor(batch)
   n_repeat = a.size(0) - 1
@@ -47,12 +49,12 @@ def test():
   # print(p)
 
   len_b = len(batch)
-  n = torch.tensor(batch) # For doing originals -> N
-  n = torch.tensor(batch2) # For doing transformed -> N
+  n = torch.tensor(batch)  # For doing originals -> N
+  n = torch.tensor(batch2)  # For doing transformed -> N
   n = n.repeat(len_b)
   # print(n)
 
-  mask = [i for i in range(len_b**2) if i%(len_b+1) != 0]
+  mask = [i for i in range(len_b**2) if i % (len_b + 1) != 0]
   # print(mask)
 
   n = n[mask]
@@ -71,10 +73,11 @@ def test2():
   print(n)
   print(p)
 
+
 def test3():
-  b_size = 8
-  batch = range(1, b_size+1)
-  batch2 = [b+.5 for b in batch]
+  b_size = 256
+  batch = range(1, b_size + 1)
+  batch2 = [b + .5 for b in batch]
 
   a = torch.tensor(batch)
   n_repeat = (a.size(0) - 1) * 2
@@ -86,14 +89,14 @@ def test3():
   # print(p)
 
   len_b = len(batch)
-  n1 = torch.tensor(batch, dtype=torch.float) # For doing originals -> N
-  n2 = torch.tensor(batch2) # For doing transformed -> N
+  n1 = torch.tensor(batch, dtype=torch.float)  # For doing originals -> N
+  n2 = torch.tensor(batch2)  # For doing transformed -> N
   n1 = n1.repeat(len_b)
   n2 = n2.repeat(len_b)
   # print(n1)
   # print(n2)
 
-  mask = [i for i in range(len_b**2) if i%(len_b+1) != 0]
+  mask = [i for i in range(len_b**2) if i % (len_b + 1) != 0]
   # print(mask)
 
   n1 = n1[mask]
@@ -104,7 +107,8 @@ def test3():
   print("a: {},  p: {},  n: {}".format(a, p, n))
   print('n={} -> {} comparisons'.format(len_b, len(a)))
 
+
 if __name__ == '__main__':
-  test()
+  # test()
   # test2()
-  # test3()
+  test3()
